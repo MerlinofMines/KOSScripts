@@ -4,12 +4,12 @@ RUNONCEPATH("0:/maneuver.ks").
 RUNONCEPATH("0:/orbital_information.ks").
 RUNONCEPATH("0:/input.ks").
 
-//rendevousWithPlan().
+rendevousWithPlan().
 
 function rendevousWithPlan {
 	LIST Targets IN targets.
 
-	Local targetVessel IS selectTargetVessel(targets, "Select Rendevous Target").
+	Local targetVessel Is selectTargetVessel(targets, "Select Rendevous Target").
 
 	Print "Beginning Rendevous with " + targetVessel.
 	rendevous(targetVessel).
@@ -40,10 +40,7 @@ function rendevous {
 //This function makes final adjustments to the approach to ensure that we
 function finalApproach {
 	parameter targetVessel.
-	parameter sourceVessel IS SHIP.
-
-
-
+	parameter sourceVessel Is SHIP.
 
 // calculate time to sucide burn.
 
@@ -55,10 +52,10 @@ function finalApproach {
 }
 
 function circularizeAtApoapsis {
-	parameter sourceVessel IS SHIP.
+	parameter sourceVessel Is SHIP.
 
 	shortInfo("Calculating Apoapsis Circularization Burn").
-	Local nd IS getApoapsisCircularizationBurnManeuverNode(sourceVessel).
+	Local nd Is getApoapsisCircularizationBurnManeuverNode(sourceVessel).
 
 	Add nd.
 
@@ -68,13 +65,13 @@ function circularizeAtApoapsis {
 	shortInfo("Circularization Burn Complete").
 }
 
-//This function assumes that you have already performed an inclination change and the targetVessel is in the
-//same plane as sourceVessel. 
+//This function assumes that you have already performed an inclination change and the targetVessel Is in the
+//same plane as sourceVessel.
 function hohmannTransfer {
 	parameter targetVessel.
-	parameter sourceVessel IS SHIP.
+	parameter sourceVessel Is SHIP.
 
-	//The first step here is to figure out when to burn to apoapsis.  We have a choice here.  We can either immediately
+	//The first step here Is to figure out when to burn to apoapsis.  We have a choice here.  We can either immediately
 	//Burn up to apoapsis and then calculate our expected separation distance, or we can figure out the optimal time
 	//to Burn up to apoapsis
 
@@ -85,21 +82,21 @@ function hohmannTransfer {
 
 	shortInfo("Matching Target Apoapsis").
 	shortInfo("Calculating Apoapsis Alighnment Maneuver").
-	Local nd IS getManeuverNodeToMatchTargetApoapsis(targetVessel, sourceVessel).
+	Local nd Is getManeuverNodeToMatchTargetApoapsis(targetVessel, sourceVessel).
 
 	Add nd.
 
 	//Step 2: Execute Burn to change apoapsis to match our target's apoapsis.
 	shortInfo("Executing Apoapsis Alignment Maneuver").
 	executeNextManeuver().
-	WAIT 2.
+	WAIT 2.//Wait for us to stop moving so that next time warp doesn't fail.
 
 	//Step 3: Find out how many rotations we need to warp through until the target vessel
 	//is on it's closest approach to us.
 	shortInfo("Calculating Time to Closest Approach").
-	LOCAL closestApproachAtApoapsisTime IS getTimeToClosestApproachAt(targetVessel, timeAtNextApoapsis(sourceVessel), sourceVessel).
+	Local closestApproachAtApoapsisTime Is getTimeToClosestApproachAt(targetVessel, timeAtNextApoapsis(sourceVessel), sourceVessel).
 
-	LOCAL periapsisBeforeClosestApproachTime IS closestApproachAtApoapsisTime - sourceVessel:ORBIT:PERIOD/2.
+	Local periapsisBeforeClosestApproachTime Is closestApproachAtApoapsisTime - sourceVessel:ORBIT:PERIOD/2.
 
 	IF (periapsisBeforeClosestApproachTime > TIME:SECONDS) {
 		shortInfo("Warping to Closest approach").
@@ -107,16 +104,16 @@ function hohmannTransfer {
         WAIT UNTIL periapsisBeforeClosestApproachTime < TIME:SECONDS.
     }
 
-	shortInfo("Calculating Minimum Orbital intersection").
-	Local timeAtIntersection IS timeOfMinimumOrbitalIntersection(targetVessel, periapsisBeforeClosestApproachTime, SHIP).
+	shortInfo("Calculating Minimum Orbital intersection...this may take up to 30 seconds.").
+	Local timeAtIntersection Is timeOfMinimumOrbitalIntersection(targetVessel, periapsisBeforeClosestApproachTime, SHIP).
 
 	info("Forcing a Rendevous").
 	shortInfo("Calculating Rendevous Burn").
-	LOCAL rendevousBurnDeltaV IS calculateRendevousBurnDeltaV(target, timeAtIntersection).
+	Local rendevousBurnDeltaV Is calculateRendevousBurnDeltaV(target, timeAtIntersection).
 
 //	Print "Needed Delta V to Synchronize Orbits: " + rendevousBurnDeltaV.
 
-	Local nd IS NODE(timeAtIntersection, 0, 0, rendevousBurnDeltaV).
+	Local nd Is NODE(timeAtIntersection, 0, 0, rendevousBurnDeltaV).
 
 	Add nd.
 
@@ -130,8 +127,8 @@ function hohmannTransfer {
 		Print "Angle: " + VANG(SHIP:FACING:VECTOR, nd:BURNVECTOR).
 	}
 
-	LOCAL halfBurnDuration IS calculatehalfBurnDuration(rendevousBurnDeltaV).
-	Local rendevousBurnTime IS timeAtIntersection - halfBurnDuration.
+	Local halfBurnDuration Is calculatehalfBurnDuration(rendevousBurnDeltaV).
+	Local rendevousBurnTime Is timeAtIntersection - halfBurnDuration.
 
 	IF (rendevousBurnTime > TIME:SECONDS - 15) {
 		shortInfo("Warping to Rendevous Burn").
@@ -151,42 +148,42 @@ function hohmannTransfer {
 
 function calculateRendevousBurnDeltaV {
 	parameter targetVessel.
-	parameter timeOfOrbitalIntersectionAtClosestApproach.	
-	parameter sourceVessel IS SHIP.
+	parameter timeOfOrbitalIntersectionAtClosestApproach.
+	parameter sourceVessel Is SHIP.
 
 	//Step 1: Calculate Needed Orbital period to meet target at next time of orbital intersection.
 	//TODO: Think about changing this to just use "now", and add orbital periods after calculating time of minimum angle
 	//vector.
-	Local startTime IS timeAtNextPeriapsis(targetVessel).
+	Local startTime Is timeAtNextPeriapsis(targetVessel).
 	UNTIL startTime > timeOfOrbitalIntersectionAtClosestApproach {
 		SET startTime TO startTime + targetVessel:Orbit:Period.
 	}
 
-	Local targetTimeAtNextIntersection IS 
+	Local targetTimeAtNextIntersection IS
 	timeofMinimumVectorAngle(sourceVessel, timeOfOrbitalIntersectionAtClosestApproach, startTime, targetVessel).
 
-	Local neededSourceVesselPeriod IS targetTimeAtNextIntersection - timeOfOrbitalIntersectionAtClosestApproach.
+	Local neededSourceVesselPeriod Is targetTimeAtNextIntersection - timeOfOrbitalIntersectionAtClosestApproach.
 
 	Print "Needed Source Vessel Period: " + neededSourceVesselPeriod.
 	Print "Current Source Vessel Period: " + sourceVessel:Orbit:Period.
 
 	//Step 2: Calculate Needed semi major axis length to have that orbital period.
 	//See https://en.wikipedia.org/wiki/Orbital_period#Small_body_orbiting_a_central_body
-	Local mu IS sourceVessel:Orbit:Body:Mu.
-	Local neededSemiMajorAxis IS (mu*(neededSourceVesselPeriod^2) / (4*(CONSTANT:PI^2)))^(1.0/3.0).
+	Local mu Is sourceVessel:Orbit:Body:Mu.
+	Local neededSemiMajorAxis Is (mu*(neededSourceVesselPeriod^2) / (4*(CONSTANT:PI^2)))^(1.0/3.0).
 
 	Print "Needed Source Vessel Semi Major Axis: " + neededSemiMajorAxis.
 	Print "Current Source Vessel Semi Major Axis: " + sourceVessel:Orbit:SemiMajorAxis.
 
-	//Step 3: Calculate needed orbital velocity at timeOfOrbitalIntersectionAtClosestApproach 
+	//Step 3: Calculate needed orbital velocity at timeOfOrbitalIntersectionAtClosestApproach
 	//See https://en.wikipedia.org/wiki/Vis-viva_equation.
-	Local r IS positionVectorAt(sourceVessel, timeOfOrbitalIntersectionAtClosestApproach):MAG.
-	Local neededOrbitalVelocityAtIntersection IS SQRT(mu*(2/r - 1/neededSemiMajorAxis)).
+	Local r Is positionVectorAt(sourceVessel, timeOfOrbitalIntersectionAtClosestApproach):MAG.
+	Local neededOrbitalVelocityAtIntersection Is SQRT(mu*(2/r - 1/neededSemiMajorAxis)).
 
-	//Step 4: difference in Delta V is simply the needed orbital velocity minus current velocity
+	//Step 4: difference in Delta V Is simply the needed orbital velocity minus current velocity
 	//at the time of orbital intersection at closest approach.
-	Local currentOrbitalVelocityAtIntersection IS VelocityAt(sourceVessel,timeOfOrbitalIntersectionAtClosestApproach):ORBIT:MAG.
-	Local neededDeltaV IS neededOrbitalVelocityAtIntersection - currentOrbitalVelocityAtIntersection.
+	Local currentOrbitalVelocityAtIntersection Is VelocityAt(sourceVessel,timeOfOrbitalIntersectionAtClosestApproach):ORBIT:MAG.
+	Local neededDeltaV Is neededOrbitalVelocityAtIntersection - currentOrbitalVelocityAtIntersection.
 
 	return neededDeltaV.
 }
@@ -194,50 +191,50 @@ function calculateRendevousBurnDeltaV {
 //This function will return a maneuver node which will
 //align the periapsis & apoapsis of the sourceVessel with the targetVessel.
 //This function assumes the two vessels are already in the same plane.
-//This function needs some improvement, the location of the final apoapsis is not exactly right, but darn close!
+//This function needs some improvement, the location of the final apoapsis Is not exactly right, but darn close!
 function getManeuverNodeToMatchTargetApoapsis {
 	parameter targetVessel.
-	parameter sourceVessel IS SHIP.
+	parameter sourceVessel Is SHIP.
 
-	LOCAL timeAtApoapsis IS timeAtNextApoapsis(targetVessel).
+	Local timeAtApoapsis Is timeAtNextApoapsis(targetVessel).
 
-	LOCAL targetPeriapsisVector IS -positionVectorAt(targetVessel, timeAtApoapsis).
+	Local targetPeriapsisVector Is -positionVectorAt(targetVessel, timeAtApoapsis).
 
-	LOCAL t IS timeofMaximumVectorAngle(targetVessel, timeAtApoapsis, sourceVessel).
+	Local t Is timeofMaximumVectorAngle(targetVessel, timeAtApoapsis, sourceVessel).
 
-	LOCAL positionVector IS positionVectorAt(sourceVessel, t).
+	Local positionVector Is positionVectorAt(sourceVessel, t).
 
 //	PRINT "Time of maximum Vector Angle: " + t.
 
 //	drawVector(targetPeriapsisVector, "Periapsis Vector", sourceVessel:ORBIT:BODY:POSITION).
 //	drawVector(positionVector, "Maximum Angle", sourceVessel:ORBIT:BODY:POSITION).
 
-	LOCAL deltaV IS deltaVToChangeApoapsisAt(t, targetVessel:ORBIT:APOAPSIS, sourceVessel).
+	Local deltaV Is deltaVToChangeApoapsisAt(t, targetVessel:ORBIT:APOAPSIS, sourceVessel).
 
     // future orbit properties
-    local r2 IS positionVectorAt(sourceVessel, t):MAG.
-    local sma2 is (r2 + sourceVessel:ORBIT:BODY:RADIUS + targetVessel:ORBIT:APOAPSIS)/2. // semi major axis target orbit
-    local v2 is sqrt((sourceVessel:ORBIT:BODY:mu * (2/r2 - 1/sma2 ) ) ).
+    Local r2 Is positionVectorAt(sourceVessel, t):MAG.
+    Local sma2 Is (r2 + sourceVessel:ORBIT:BODY:RADIUS + targetVessel:ORBIT:APOAPSIS)/2. // semi major axis target orbit
+    Local v2 Is sqrt((sourceVessel:ORBIT:BODY:mu * (2/r2 - 1/sma2 ) ) ).
 
-	LOCAL targetApoapsisProgradeVector IS VelocityAt(targetVessel, timeAtApoapsis):ORBIT.
+	Local targetApoapsisProgradeVector Is VelocityAt(targetVessel, timeAtApoapsis):ORBIT.
 
-	LOCAL sourceProgradeVectorAtNewPeriapsis IS VelocityAt(sourceVessel, t):ORBIT.
+	Local sourceProgradeVectorAtNewPeriapsis Is VelocityAt(sourceVessel, t):ORBIT.
 
-	LOCAL neededProgradeVectorAtNewPeriapsis IS -targetApoapsisProgradeVector:NORMALIZED*v2.
+	Local neededProgradeVectorAtNewPeriapsis Is -targetApoapsisProgradeVector:NORMALIZED*v2.
 
 //	PRINT "Needed Prograde velocity: " + neededProgradeVectorAtNewPeriapsis:MAG.
 
-	LOCAL deltaVector IS neededProgradeVectorAtNewPeriapsis - sourceProgradeVectorAtNewPeriapsis.
+	Local deltaVector Is neededProgradeVectorAtNewPeriapsis - sourceProgradeVectorAtNewPeriapsis.
 
-	//Need to convert deltaVector to 
+	//Need to convert deltaVector to
 //	PRINT "Needed Delta V: " + deltaVector:MAG.
 
 //	PRINT "Vector: " + deltaVector.
 
-	Local vectorAngleDiff IS VANG(neededProgradeVectorAtNewPeriapsis, sourceProgradeVectorAtNewPeriapsis).
+	Local vectorAngleDiff Is VANG(neededProgradeVectorAtNewPeriapsis, sourceProgradeVectorAtNewPeriapsis).
 
 	//Let's try out this shnazzy eq.
-	LOCAL argOfPerDeltaV IS 2*sqrt(sourceVessel:ORBIT:BODY:MU / (sma2*(1-sourceVessel:ORBIT:ECCENTRICITY^2)))*sin(vectorAngleDiff/2).
+	Local argOfPerDeltaV Is 2*sqrt(sourceVessel:ORBIT:BODY:MU / (sma2*(1-sourceVessel:ORBIT:ECCENTRICITY^2)))*sin(vectorAngleDiff/2).
 
 //	PRINT "Vector Angle Diff: " + vectorAngleDiff.
 //	PRINT "argOfPerDeltaV: " + argOfPerDeltaV.
@@ -247,7 +244,7 @@ function getManeuverNodeToMatchTargetApoapsis {
 //	PRINT "cosAngle: " + cos(vectorAngleDiff)*cos(vectorAngleDiff)*deltaVector:MAG.
 //	PRINT "sinAngle: " + sin(vectorAngleDiff)*deltaVector:MAG.
 
-    local nd is node(t, argOfPerDeltaV, 0, deltaVector:MAG).
+    Local nd Is node(t, argOfPerDeltaV, 0, deltaVector:MAG).
 
     return nd.
 }
@@ -255,17 +252,17 @@ function getManeuverNodeToMatchTargetApoapsis {
 function deltaVToChangeApoapsisAt {
     parameter newPeriapsisTime.
     parameter newApoapsis.
-    parameter sourceVessel IS SHIP.
+    parameter sourceVessel Is SHIP.
 
-    local mu is body:mu.
-    local br is body:radius.
+    Local mu Is body:mu.
+    Local br Is body:radius.
 
     // present orbit properties
-    local vom is velocity:orbit:mag.               // actual velocity
-    local r is br + altitude.                      // actual distance to body
+    Local vom Is velocity:orbit:mag.               // actual velocity
+    Local r Is br + altitude.                      // actual distance to body
 
-    local v1 IS VelocityAt(sourceVessel, newPeriapsisTime):ORBIT:MAG. //velocity at new burn periapsis
-    local sma1 is (periapsis + 2*br + apoapsis)/2. // semi major axis present orbit
+    Local v1 Is VelocityAt(sourceVessel, newPeriapsisTime):ORBIT:MAG. //velocity at new burn periapsis
+    Local sma1 Is (periapsis + 2*br + apoapsis)/2. // semi major axis present orbit
 
 //    PRINT "r: " + r.
 //    PRINT "sma1: " + sma1.
@@ -274,9 +271,9 @@ function deltaVToChangeApoapsisAt {
 //    PRINT "MU: " + mu.
 
     // future orbit properties
-    local r2 IS positionVectorAt(sourceVessel, newPeriapsisTime):MAG.
-    local sma2 is (r2 + br + newApoapsis)/2. // semi major axis target orbit
-    local v2 is sqrt((mu * (2/r2 - 1/sma2 ) ) ).
+    Local r2 Is positionVectorAt(sourceVessel, newPeriapsisTime):MAG.
+    Local sma2 Is (r2 + br + newApoapsis)/2. // semi major axis target orbit
+    Local v2 Is sqrt((mu * (2/r2 - 1/sma2 ) ) ).
 
 //    PRINT "r2: " + r2.
 //    PRINT "sma2: " + sma2.
@@ -287,7 +284,7 @@ function deltaVToChangeApoapsisAt {
 //    PRINT "Other Stuff * mu: " + (2/r2 - 1/sma2 ) * mu.
 
     // create node
-    local deltav is v2 - v1.
+    Local deltav Is v2 - v1.
 
     return deltaV.
 }
@@ -296,13 +293,13 @@ function deltaVToChangeApoapsisAt {
 function timeOfMinimumOrbitalIntersection {
 	parameter targetVessel.
 	parameter afterTime.
-	parameter sourceVessel IS SHIP.	
+	parameter sourceVessel Is SHIP.
 
-	LOCAL startTime IS afterTime.
-	LOCAL stepNumber IS 5.
-	LOCAL stepDuration IS SHIP:ORBIT:PERIOD / stepNumber.
+	Local startTime Is afterTime.
+	Local stepNumber Is 5.
+	Local stepDuration Is SHIP:ORBIT:PERIOD / stepNumber.
 
-	LOCAL minimumSeparationTime IS timeOfMinimumOrbitalIntersectionIterate(sourceVessel, targetVessel, startTime, stepNumber, stepDuration).
+	Local minimumSeparationTime Is timeOfMinimumOrbitalIntersectionIterate(sourceVessel, targetVessel, startTime, stepNumber, stepDuration).
 
 	return minimumSeparationTime.
 }
@@ -314,21 +311,21 @@ function timeOfMinimumOrbitalIntersectionIterate {
 	parameter startTime.
 	parameter stepNumber.
 	parameter stepDuration.
-	parameter errorBound IS 0.01. //Error bound, in seconds.
-	parameter iterationCount IS 1.
+	parameter errorBound Is 0.01. //Error bound, in seconds.
+	parameter iterationCount Is 1.
 
-	LOCAL minimumOrbitalIntersectionDistance IS timeOfMinimumVectorAngle(sourceVessel, startTime, TIME:SECONDS, targetVessel).
-	LOCAL minimumOrbitalIntersectionTime IS startTime.
+	Local minimumOrbitalIntersectionDistance Is timeOfMinimumVectorAngle(sourceVessel, startTime, TIME:SECONDS, targetVessel).
+	Local minimumOrbitalIntersectionTime Is startTime.
 
-	FROM {LOCAL step IS 1.} UNTIL step >= stepNumber STEP {SET step TO step + 1.} DO {
+	FROM {Local step Is 1.} UNTIL step >= stepNumber STEP {SET step TO step + 1.} DO {
 //		PRINT "Step is: " + step.
-		LOCAL intersectionTime IS startTime + (step * stepDuration).
+		Local intersectionTime Is startTime + (step * stepDuration).
 
 //		PRINT "IntersectionTime: " + intersectionTime.
-		Local sourceVesselPosition IS positionVectorAt(sourceVessel, intersectionTime).
+		Local sourceVesselPosition Is positionVectorAt(sourceVessel, intersectionTime).
 
-		Local minimumVectorAngleTime IS timeOfMinimumVectorAngle(sourceVessel, intersectionTime, TIME:SECONDS, targetVessel).
-		LOCAL targetVesselPosition IS positionVectorAt(targetVessel, minimumVectorAngleTime).
+		Local minimumVectorAngleTime Is timeOfMinimumVectorAngle(sourceVessel, intersectionTime, TIME:SECONDS, targetVessel).
+		Local targetVesselPosition Is positionVectorAt(targetVessel, minimumVectorAngleTime).
 
 //		drawVector(sourceVesselPosition, "SourcePosition." + step, sourceVessel:ORBIT:BODY:POSITION).
 //		drawVector(targetVesselPosition, "TargetPosition." + step, sourceVessel:ORBIT:BODY:POSITION).
@@ -336,7 +333,7 @@ function timeOfMinimumOrbitalIntersectionIterate {
 	//	PRINT "Source Vessel Position: " + sourceVesselPosition.
 	//	PRINT "Target Vessel Position: " + targetVesselPosition.
 
-		Local newOrbitalIntersectionDistance IS (targetVesselPosition - sourceVesselPosition):MAG.
+		Local newOrbitalIntersectionDistance Is (targetVesselPosition - sourceVesselPosition):MAG.
 
 		IF (newOrbitalIntersectionDistance < minimumOrbitalIntersectionDistance) {
 			SET minimumOrbitalIntersectionDistance TO newOrbitalIntersectionDistance.
@@ -353,29 +350,29 @@ function timeOfMinimumOrbitalIntersectionIterate {
 
 //	drawVector(positionVectorAt(sourceVessel, minimumOrbitalIntersectionTime), "Iteraction." + iterationCount, sourceVessel:ORBIT:BODY:POSITION).
 
-	LOCAL newStartTime IS minimumOrbitalIntersectionTime - stepDuration.
-	LOCAL newStepDuration TO (stepDuration * 2) / stepNumber.
+	Local newStartTime Is minimumOrbitalIntersectionTime - stepDuration.
+	Local newStepDuration TO (stepDuration * 2) / stepNumber.
 
-	LOCAL revisedMinimumOrbitalIntersectionTime TO timeOfMinimumOrbitalIntersectionIterate(sourceVessel, targetVessel, newStartTime, stepNumber, newStepDuration, errorBound, iterationCount+1).
+	Local revisedMinimumOrbitalIntersectionTime TO timeOfMinimumOrbitalIntersectionIterate(sourceVessel, targetVessel, newStartTime, stepNumber, newStepDuration, errorBound, iterationCount+1).
 
 	return revisedMinimumOrbitalIntersectionTime.
 }
 
 //Hybrid which gets a good estimate using VectorAngle2, then refines it using the iterations.
-//This method is only slightly faster than method 1, but is slightly less accurate.
+//This method Is only slightly faster than method 1, but Is slightly less accurate.
 function timeOfMinimumVectorAngle3 {
 	parameter targetVessel.
 	parameter pointInTime.
-	parameter sourceVessel IS SHIP.
+	parameter sourceVessel Is SHIP.
 
-	Local guesstime IS timeOfMinimumVectorAngle2(targetVessel, pointIntime, sourceVessel).
-		
-	LOCAL positionVectorAtTime IS positionVectorAt(targetVessel, pointInTime).
+	Local guesstime Is timeOfMinimumVectorAngle2(targetVessel, pointIntime, sourceVessel).
 
-	LOCAL stepNumber IS 4.
-	LOCAL stepDuration IS 30 / stepNumber. //30 seconds should be a small enough band.
+	Local positionVectorAtTime Is positionVectorAt(targetVessel, pointInTime).
 
-	LOCAL minimumVectorAngleTime IS timeofMinimumVectorAngleIterate(positionVectorAtTime, sourceVessel, guesstime - 15, stepNumber, stepDuration).
+	Local stepNumber Is 4.
+	Local stepDuration Is 30 / stepNumber. //30 seconds should be a small enough band.
+
+	Local minimumVectorAngleTime Is timeofMinimumVectorAngleIterate(positionVectorAtTime, sourceVessel, guesstime - 15, stepNumber, stepDuration).
 
 	return minimumVectorAngleTime.
 }
@@ -383,7 +380,7 @@ function timeOfMinimumVectorAngle3 {
 //****EXPERIMENT, NOT YET FIGURED OUT.  BUT CLOSE******
 //The below functions might be replaceable with a deterministic function instead of iteraction.  Steps would be as follows:
 //Input:   targetVessel, pointInTime, sourceVessel.
-//Step 1: Get point in time at apoapsis of both target and source vessel. 
+//Step 1: Get point in time at apoapsis of both target and source vessel.
 //Step 2: Get the true anomaly of the source vessel at the target vessels time to apoapsis.
 //Step 3: Calculate the "delta true anomaly" of source and target vessel.
 //Step 4: Get true anomaly of targetVessel orbit at time "pointInTime".
@@ -392,85 +389,85 @@ function timeOfMinimumVectorAngle3 {
 //Step 7: Calcualte source vessel mean anomaly at pointInTime from eccentric anomaly
 //Step 8: Calculate time diff from sourceVessel point at Periapsis using period and Kepler's equation (see mobile bookmarks).
 //Step 9: Calculate sourceVessel next time to periapsis and add time diff to get t, which should be the time at which the
-//mean anomaly of source vessel is the meanAnomaly at pointInTime, meaning it *should* be the time at which
-//the sourceVessel is closest in its orbit to the target vessels orbit at the same point (rotation about it's orbit).  
-//This point can be used to identify the "orbital intercept" distance at that point.  
+//mean anomaly of source vessel Is the meanAnomaly at pointInTime, meaning it *should* be the time at which
+//the sourceVessel Is closest in its orbit to the target vessels orbit at the same point (rotation about it's orbit).
+//This point can be used to identify the "orbital intercept" distance at that point.
 //Using iteration, you should be able to calculate the time to "Orbital Intercept" (time when the spacecraft would be nearest each other if they were at the same point in their orbit).
 
-//This method is much faster than the iterative approach, but is innacurate up to several seconds. Good for getting a good estimate, but not for accuracy.
+//This method Is much faster than the iterative approach, but Is innacurate up to several seconds. Good for getting a good estimate, but not for accuracy.
 function timeOfMinimumVectorAngle2 {
 	parameter targetVessel.
 	parameter pointInTime.
-	parameter sourceVessel IS SHIP.
+	parameter sourceVessel Is SHIP.
 
 //	Print "Step 1".
-	//Step 1: Get point in time at apoapsis of both target and source vessel. 
-	Local sourceTimeAtNextApoapsis IS timeAtNextApoapsis(sourceVessel).
-	Local targetTimeAtNextApoapsis IS timeAtNextApoapsis(targetVessel).
+	//Step 1: Get point in time at apoapsis of both target and source vessel.
+	Local sourceTimeAtNextApoapsis Is timeAtNextApoapsis(sourceVessel).
+	Local targetTimeAtNextApoapsis Is timeAtNextApoapsis(targetVessel).
 
 //	Print "Step 2".
 	//Step 2: Get the true anomaly of the source vessel at the target vessels time to apoapsis.
-	Local sourceTrueAnomalyAtTargetApoapsis IS trueAnomalyAt(targetTimeAtNextApoapsis, sourceVessel).
+	Local sourceTrueAnomalyAtTargetApoapsis Is trueAnomalyAt(targetTimeAtNextApoapsis, sourceVessel).
 
 //	Print "Step 3".
 	//Step 3: Calculate the "delta mean anomaly" of source and target vessel. Note that this needs to be signed.
-	Local sourcePositionAtApoapsis IS positionVectorAt(sourceVessel, sourceTimeAtNextApoapsis).
-	Local targetPositionAtApoapsis IS positionVectorAt(targetVessel, targetTimeAtNextApoapsis).
+	Local sourcePositionAtApoapsis Is positionVectorAt(sourceVessel, sourceTimeAtNextApoapsis).
+	Local targetPositionAtApoapsis Is positionVectorAt(targetVessel, targetTimeAtNextApoapsis).
 
-	Local apoapsisAngle IS VANG(sourcePositionAtApoapsis, targetPositionAtApoapsis).
+	Local apoapsisAngle Is VANG(sourcePositionAtApoapsis, targetPositionAtApoapsis).
 
-	Local sourceOrbitNormal IS VCRS(positionVectorAt(sourceVessel, pointInTime), VelocityAt(sourceVessel, pointInTime):ORBIT).
-	Local apoapsisNormal IS VCRS(positionVectorAt(sourceVessel, sourceTimeAtNextApoapsis),
+	Local sourceOrbitNormal Is VCRS(positionVectorAt(sourceVessel, pointInTime), VelocityAt(sourceVessel, pointInTime):ORBIT).
+	Local apoapsisNormal Is VCRS(positionVectorAt(sourceVessel, sourceTimeAtNextApoapsis),
 								 positionVectorAt(targetVessel, targetTimeAtNextApoapsis)).
 
 	IF VANG(sourceOrbitNormal, apoapsisNormal) < 180 {
 		SET apoapsisAngle TO -apoapsisAngle.
 	}
 
-	Local deltaMeanAnomaly IS apoapsisAngle.
+	Local deltaMeanAnomaly Is apoapsisAngle.
 
 	Print "Delta Mean Anomaly: " + deltaMeanAnomaly.
 
 //	Print "Step 4".
 	//Step 4: Get mean anomaly of targetVessel orbit at time "pointInTime".
-	Local targetVesselTrueAnomaly IS trueAnomalyAt(pointInTime, targetVessel).
-	Local targetVesselMeanAnomaly IS meanAnomalyFromTrueAnomaly(targetVesselTrueAnomaly, targetVessel:ORBIT:ECCENTRICITY).
+	Local targetVesselTrueAnomaly Is trueAnomalyAt(pointInTime, targetVessel).
+	Local targetVesselMeanAnomaly Is meanAnomalyFromTrueAnomaly(targetVesselTrueAnomaly, targetVessel:ORBIT:ECCENTRICITY).
 
 	if (positionVectorAt(targetVessel,pointInTime) * VelocityAt(targetVessel,pointInTime):ORBIT < 0) {
 		SET targetVesselMeanAnomaly TO 360 - targetVesselMeanAnomaly.
 	}
 
 	//Step 5: Use the "delta mean anomaly" to get the mean anomaly of sourceVessel at pointInTime.
-	Local sourceVesselMeanAnomaly IS targetVesselMeanAnomaly - deltaMeanAnomaly.
+	Local sourceVesselMeanAnomaly Is targetVesselMeanAnomaly - deltaMeanAnomaly.
 
 	SET targetVesselMeanAnomaly TO MOD(targetVesselMeanAnomaly + 360,360).
-	SET sourceVesselMeanAnomaly TO MOD(sourceVesselMeanAnomaly + 360,360). 
+	SET sourceVesselMeanAnomaly TO MOD(sourceVesselMeanAnomaly + 360,360).
 
 	Print "Target Vessel Mean Anomaly: " + targetVesselMeanAnomaly.
 	Print "Source Vessel Mean Anomaly: " + sourceVesselMeanAnomaly.
 
 	//Step 6: Calculate time diff from sourceVessel point at Periapsis using period and Kepler's equation (see mobile bookmarks).
-	Local n IS 360 / sourceVessel:ORBIT:PERIOD.
-	Local timeDiffToMeanAnomaly IS sourceVesselMeanAnomaly/n.
+	Local n Is 360 / sourceVessel:ORBIT:PERIOD.
+	Local timeDiffToMeanAnomaly Is sourceVesselMeanAnomaly/n.
 
 	//Step 7: Calculate sourceVessel next time to periapsis and add time diff to get t, which should be the time at which the
-	//mean anomaly of source vessel is the meanAnomaly at pointInTime, meaning it *should* be the time at which
-	//the sourceVessel is closest in its orbit to the target vessels orbit at the same point (rotation about it's orbit).  
-	Local sourceTimeAtPeriapsis IS timeAtNextPeriapsis(sourceVessel).
-	Local timeToPointInTime IS sourceTimeAtPeriapsis + timeDiffToMeanAnomaly.
+	//mean anomaly of source vessel Is the meanAnomaly at pointInTime, meaning it *should* be the time at which
+	//the sourceVessel Is closest in its orbit to the target vessels orbit at the same point (rotation about it's orbit).
+	Local sourceTimeAtPeriapsis Is timeAtNextPeriapsis(sourceVessel).
+	Local timeToPointInTime Is sourceTimeAtPeriapsis + timeDiffToMeanAnomaly.
 
 	if(timeToPointInTime - sourceVessel:ORBIT:PERIOD > TIME:SECONDS) {
 		SET timeToPointInTime TO timeToPointInTime - sourceVessel:ORBIT:PERIOD.
 	}
 
-	return timeToPointInTime.	
+	return timeToPointInTime.
 }
 
 //Returns the point in time at which the angle between source vessel's position vector (see positionVectorAt())
 //and the target vessel's position vector (assumed to be at a specific known point in time/space, such as it's apoapsis)
-//is at a minimum.  
+//is at a minimum.
 //
-//This function is very useful for determining the point in time that a rendevous burn to synchronize the periods
+//This function Is very useful for determining the point in time that a rendevous burn to synchronize the periods
 //of an orbit should take place, assuming that the vessels were previously placed in to orbits such that their intersection is
 //at a minimum at a known point in time/space, such as at the source or target's apoapsis or periapsis.
 //
@@ -478,42 +475,42 @@ function timeOfMinimumVectorAngle2 {
 function timeofMinimumVectorAngle {
 	parameter targetVessel.
 	parameter pointInTime.
-	parameter startTime IS TIME:SECONDS.
-	parameter sourceVessel IS SHIP.
+	parameter startTime Is TIME:SECONDS.
+	parameter sourceVessel Is SHIP.
 
-	LOCAL positionVectorAtTime IS positionVectorAt(targetVessel, pointInTime).
+	Local positionVectorAtTime Is positionVectorAt(targetVessel, pointInTime).
 
-	LOCAL stepNumber IS 4.
-	LOCAL stepDuration IS sourceVessel:ORBIT:PERIOD / stepNumber.
+	Local stepNumber Is 4.
+	Local stepDuration Is sourceVessel:ORBIT:PERIOD / stepNumber.
 
-	LOCAL minimumVectorAngleTime IS timeofMinimumVectorAngleIterate(positionVectorAtTime, sourceVessel, startTime, stepNumber, stepDuration).
+	Local minimumVectorAngleTime Is timeofMinimumVectorAngleIterate(positionVectorAtTime, sourceVessel, startTime, stepNumber, stepDuration).
 
-	return minimumVectorAngleTime.	
+	return minimumVectorAngleTime.
 }
 
 function timeofMinimumVectorAngleIterate {
 	parameter positionVector.
-	parameter sourceVessel.			
+	parameter sourceVessel.
 	parameter startTime.
 	parameter stepNumber.
 	parameter stepDuration.
-	parameter errorBound IS 0.01. //Error bound, in seconds.
-	parameter iterationCount IS 1.
+	parameter errorBound Is 0.01. //Error bound, in seconds.
+	parameter iterationCount Is 1.
 
-	LOCAL minimumVectorAngle IS VANG(positionVector, positionVectorAt(sourceVessel, startTime)).
-	LOCAL minimumVectorAngleTime IS startTime.
+	Local minimumVectorAngle Is VANG(positionVector, positionVectorAt(sourceVessel, startTime)).
+	Local minimumVectorAngleTime Is startTime.
 
-	FROM {LOCAL step IS 1.} UNTIL step >= stepNumber STEP {SET step TO step + 1.} DO {
+	FROM {Local step Is 1.} UNTIL step >= stepNumber STEP {SET step TO step + 1.} DO {
 //		PRINT "Step is: " + step.
-		LOCAL vectorAngleTime iS startTime + (step * stepDuration).
+		Local vectorAngleTime Is startTime + (step * stepDuration).
 
 //		PRINT "Vector Angle Time is: " + vectorAngleTime.
 
-		LOCAL vesselPosition IS positionVectorAt(sourceVessel, vectorAngleTime).
+		Local vesselPosition Is positionVectorAt(sourceVessel, vectorAngleTime).
 
 //		drawVector(positionVector, "TestPosition." + step, sourceVessel:ORBIT:BODY:POSITION).
 
-		LOCAL newMinimumVectorAngle IS VANG(vesselPosition, positionVector).
+		Local newMinimumVectorAngle Is VANG(vesselPosition, positionVector).
 
 		IF (newMinimumVectorAngle < minimumVectorAngle) {
 			SET minimumVectorAngle TO newMinimumVectorAngle.
@@ -532,10 +529,10 @@ function timeofMinimumVectorAngleIterate {
 
 //	drawVector(positionVectorAt(sourceVessel, minimumVectorAngleTime), "Iteraction." + iterationCount, sourceVessel:ORBIT:BODY:POSITION).
 
-	LOCAL newStartTime IS minimumVectorAngleTime - stepDuration.
-	LOCAL newStepDuration TO (stepDuration * 2) / stepNumber.
+	Local newStartTime Is minimumVectorAngleTime - stepDuration.
+	Local newStepDuration TO (stepDuration * 2) / stepNumber.
 
-	LOCAL revisedMinimumVectorAngleTime TO timeofMinimumVectorAngleIterate(positionVector, sourceVessel, newStartTime, stepNumber, newStepDuration, errorBound, iterationCount+1).
+	Local revisedMinimumVectorAngleTime TO timeofMinimumVectorAngleIterate(positionVector, sourceVessel, newStartTime, stepNumber, newStepDuration, errorBound, iterationCount+1).
 
 	return revisedMinimumVectorAngleTime.
 }
@@ -544,48 +541,48 @@ function timeofMinimumVectorAngleIterate {
 //and the target vessel's position vector (assumed to be at a specific known point in time/space, such as it's apoapsis)
 //is at a maximum.
 //
-//This function is very useful for determining the point in time that a burn to minimize the intersection distance at a known point in time/space.  For example, this method might tell you the exact time that you should burn prograde such that your new apoapsis will intersect with your target's apoapsis, making it much easier to perform a rendevous (as you would now know that you need to burn at apoapsis to synchronize your periods to create a rendevous).
+//This function Is very useful for determining the point in time that a burn to minimize the intersection distance at a known point in time/space.  For example, this method might tell you the exact time that you should burn prograde such that your new apoapsis will intersect with your target's apoapsis, making it much easier to perform a rendevous (as you would now know that you need to burn at apoapsis to synchronize your periods to create a rendevous).
 //
 //Note: this function assumes the source and target vessels are orbiting roughly in the same plane.
 function timeofMaximumVectorAngle {
 	parameter targetVessel.
 	parameter pointInTime.
-	parameter sourceVessel IS SHIP.
+	parameter sourceVessel Is SHIP.
 
-	LOCAL positionVectorAtTime IS positionVectorAt(targetVessel, pointInTime).
+	Local positionVectorAtTime Is positionVectorAt(targetVessel, pointInTime).
 
-	LOCAL startTime IS TIME:SECONDS.
-	LOCAL stepNumber IS 3.
-	LOCAL stepDuration IS SHIP:ORBIT:PERIOD / stepNumber.
+	Local startTime Is TIME:SECONDS.
+	Local stepNumber Is 3.
+	Local stepDuration Is SHIP:ORBIT:PERIOD / stepNumber.
 
-	LOCAL maximumVectorAngleTime IS timeofMaximumVectorAngleIterate(positionVectorAtTime, sourceVessel, startTime, stepNumber, stepDuration).
+	Local maximumVectorAngleTime Is timeofMaximumVectorAngleIterate(positionVectorAtTime, sourceVessel, startTime, stepNumber, stepDuration).
 
 	return maximumVectorAngleTime.
 }
 
 function timeofMaximumVectorAngleIterate {
 	parameter positionVector.
-	parameter sourceVessel.			
+	parameter sourceVessel.
 	parameter startTime.
 	parameter stepNumber.
 	parameter stepDuration.
-	parameter errorBound IS 0.01. //Error bound, in seconds.
-	parameter iterationCount IS 1.
+	parameter errorBound Is 0.01. //Error bound, in seconds.
+	parameter iterationCount Is 1.
 
-	LOCAL maximumVectorAngle IS VANG(positionVector, positionVectorAt(sourceVessel, startTime)).
-	LOCAL maximumVectorAngleTime IS startTime.
+	Local maximumVectorAngle Is VANG(positionVector, positionVectorAt(sourceVessel, startTime)).
+	Local maximumVectorAngleTime Is startTime.
 
-	FROM {LOCAL step IS 1.} UNTIL step >= stepNumber STEP {SET step TO step + 1.} DO {
+	FROM {Local step Is 1.} UNTIL step >= stepNumber STEP {SET step TO step + 1.} DO {
 //		PRINT "Step is: " + step.
-		LOCAL vectorAngleTime iS startTime + (step * stepDuration).
+		Local vectorAngleTime Is startTime + (step * stepDuration).
 
 //		PRINT "Vector Angle Time is: " + vectorAngleTime.
 
-		LOCAL vesselPosition IS positionVectorAt(sourceVessel, vectorAngleTime).
+		Local vesselPosition Is positionVectorAt(sourceVessel, vectorAngleTime).
 
 //		drawVector(positionVector, "TestPosition." + step, sourceVessel:ORBIT:BODY:POSITION).
 
-		LOCAL newMaximumVectorAngle IS VANG(vesselPosition, positionVector).
+		Local newMaximumVectorAngle Is VANG(vesselPosition, positionVector).
 
 		IF (newMaximumVectorAngle > maximumVectorAngle) {
 			SET maximumVectorAngle TO newMaximumVectorAngle.
@@ -602,10 +599,10 @@ function timeofMaximumVectorAngleIterate {
 
 //	drawVector(positionVectorAt(sourceVessel, maximumVectorAngleTime), "Iteraction." + iterationCount, sourceVessel:ORBIT:BODY:POSITION).
 
-	LOCAL newStartTime IS maximumVectorAngleTime - stepDuration.
-	LOCAL newStepDuration TO (stepDuration * 2) / stepNumber.
+	Local newStartTime Is maximumVectorAngleTime - stepDuration.
+	Local newStepDuration TO (stepDuration * 2) / stepNumber.
 
-	LOCAL revisedMaximumVectorAngleTime TO timeofMaximumVectorAngleIterate(positionVector, sourceVessel, newStartTime, stepNumber, newStepDuration, errorBound, iterationCount+1).
+	Local revisedMaximumVectorAngleTime TO timeofMaximumVectorAngleIterate(positionVector, sourceVessel, newStartTime, stepNumber, newStepDuration, errorBound, iterationCount+1).
 
 	return revisedMaximumVectorAngleTime.
 }
@@ -613,25 +610,25 @@ function timeofMaximumVectorAngleIterate {
 function getApoapsisCircularizationBurnManeuverNode {
     parameter sourceVessel.
 
-    local timeAtApoapsis IS timeAtNextApoapsis(sourceVessel).
-    local mu is sourceVessel:Orbit:Body:Mu.
-    local vi IS VelocityAt(sourceVessel, timeAtApoapsis):Orbit:MAG.
-    local r IS positionVectorAt(sourceVessel, timeAtApoapsis):MAG.
+    Local timeAtApoapsis Is timeAtNextApoapsis(sourceVessel).
+    Local mu Is sourceVessel:Orbit:Body:Mu.
+    Local vi Is VelocityAt(sourceVessel, timeAtApoapsis):Orbit:MAG.
+    Local r Is positionVectorAt(sourceVessel, timeAtApoapsis):MAG.
 
-    local vf is sqrt(mu /r).
+    Local vf Is sqrt(mu /r).
 
     // create node
-    local deltav is vf - vi.
-    local nd is node(timeAtApoapsis, 0, 0, deltav).
+    Local deltav Is vf - vi.
+    Local nd Is node(timeAtApoapsis, 0, 0, deltav).
     return nd.
 }
 
 function getTimeToClosestApproachAt {
 	parameter targetVessel.
 	parameter closestApproachTime.
-	parameter sourceVessel IS SHIP.
+	parameter sourceVessel Is SHIP.
 
-	LOCAL timeToClosestApproach IS closestApproachTime.
+	Local timeToClosestApproach Is closestApproachTime.
 
 	//Safety check, as we aren't sure if the referenced closestApproachTime is
 	//in the future or in the past.  Ideally it should be in the future, but no harm
@@ -641,7 +638,7 @@ function getTimeToClosestApproachAt {
 	}
 
 	//TODO: This calculation can be made much faster, as we should be able to calculate the "delta" in
-	//True anomaly per each orbit.  Since true anomaly is a measure of rotation around a circle, it should be constant.
+	//True anomaly per each orbit.  Since true anomaly Is a measure of rotation around a circle, it should be constant.
 	//Thus, we can extrapolate future true anomalies by calculating the true anomaly at closest approach and 1 orbit after closest approach.  After that, it's just a matter of continuing to add delta true anomaly until we are satisfied.
 
 	UNTIL (trueAnomalyAt(timeToClosestApproach, targetVessel) > 180
@@ -650,8 +647,8 @@ function getTimeToClosestApproachAt {
 
 //		PRINT "True Anomaly: " + trueAnomalyAt(timeToClosestApproach, targetVessel).
 
-//		LOCAL sourcePositionVector IS positionVectorAt(sourceVessel, timeToClosestApproach).
-//		LOCAL targetPositionVector IS positionVectorAt(targetVessel, timeToClosestApproach).
+//		Local sourcePositionVector Is positionVectorAt(sourceVessel, timeToClosestApproach).
+//		Local targetPositionVector Is positionVectorAt(targetVessel, timeToClosestApproach).
 
 //		drawVector(sourcePositionVector, "Source", sourceVessel:ORBIT:BODY:POSITION).
 //		drawVector(targetPositionVector, "Target", targetVessel:ORBIT:BODY:POSITION).
@@ -666,19 +663,19 @@ function getTimeToClosestApproachAt {
 
 //This function will perform a rendevousBurn, meaning that it will begin executing a burn (prograde currently)
 //and will terminate the burn once the separation distance between the sourceVessel and the targetVessel on the next
-//rotation is at a minimum.
+//rotation Is at a minimum.
 function rendevousBurn {
 	parameter targetVessel.
-	parameter minimumSeparationTime. //This is the time we expect to be at minimum separation after completing burn. 
-	parameter sourceVessel IS SHIP.
+	parameter minimumSeparationTime. //This Is the time we expect to be at minimum separation after completing burn.
+	parameter sourceVessel Is SHIP.
 
 	SET THROTTLE to 1.0.
 
-	LOCAL minSeparationDistance IS separationDistanceAtTime(SHIP, targetVessel, minimumSeparationTime).
-	
+	Local minSeparationDistance Is separationDistanceAtTime(SHIP, targetVessel, minimumSeparationTime).
+
 	UNTIL FALSE {
 		CLEARSCREEN.
-		LOCAL newDistance IS separationDistanceAtTime(SHIP, targetVessel, minimumSeparationTime).
+		Local newDistance Is separationDistanceAtTime(SHIP, targetVessel, minimumSeparationTime).
 
 		PRINT "Minimum Separation Distance: " + newDistance.
 
@@ -702,15 +699,15 @@ function rendevousBurn {
 }
 
 //This function will always burn at the next "ascending node" to match the inclination of the target vessel.
-//It will recursively call itself until the final inclination is < 0.01.
-//Note: This functio needs some work.  Calculation of the eccentricity vector is off, and is likely affecting
+//It will recursively call itself until the final inclination Is < 0.01.
+//Note: This functio needs some work.  Calculation of the eccentricity vector Is off, and Is likely affecting
 //The calculation of the ascending node location (leading to a pre-burn, which means we have to iterate).
 //Furthermore, a smarter algorithm for the inclination burn may help accomplish the plane change with 1 burn and remove
 //the need to recurse.
 function matchInclination {
 	parameter targetVessel.
 
-	LOCAL relativeInc IS relativeInclination(targetVessel:ORBIT).
+	Local relativeInc Is relativeInclination(targetVessel:ORBIT).
 
 	if (relativeInc < 0.01) {
 		PRINT "Inclination Change Complete.".
@@ -719,10 +716,10 @@ function matchInclination {
 	}
 
 	SAS ON.
-	SET SASMODE TO "ANTINORMAL". 
+	SET SASMODE TO "ANTINORMAL".
 
-	LOCAL shipOrbitalVelocity IS SHIP:ORBIT:VELOCITY:ORBIT.
-	LOCAL shipOrbitalPosition IS SHIP:ORBIT:BODY:ORBIT:POSITION.
+	Local shipOrbitalVelocity Is SHIP:ORBIT:VELOCITY:ORBIT.
+	Local shipOrbitalPosition Is SHIP:ORBIT:BODY:ORBIT:POSITION.
 
 	UNTIL (VANG(SHIP:FACING:FOREVECTOR, VCRS(shipOrbitalVelocity,shipOrbitalPosition)) < 0.1) {
 		CLEARSCREEN.
@@ -736,7 +733,7 @@ function matchInclination {
 		SET shipOrbitalPosition TO SHIP:ORBIT:BODY:ORBIT:POSITION.
 	}
 
-	LOCAL timeToBurn IS timeToInclinationBurn(targetVessel).
+	Local timeToBurn Is timeToInclinationBurn(targetVessel).
 
 	IF (timeToBurn - 10 > TIME:SECONDS) {
         WARPTO(timeToBurn - 10).
@@ -758,17 +755,17 @@ function inclinationBurn {
 
 	SET THROTTLE to 1.0.
 
-	LOCAL relI IS 1000.
+	Local relI Is 1000.
 
 	SET DONE TO FALSE.
 
 	UNTIL FALSE {
 		CLEARSCREEN.
-		LOCAL newRelI IS relativeInclination(targetVessel:ORBIT).
+		Local newRelI Is relativeInclination(targetVessel:ORBIT).
 		PRINT "Relative Inclination: " + newRelI.
 		if(newRelI > relI AND newRelI < 0.1) {
 			BREAK.
-		} 
+		}
 
 		if(newRelI < 0.02) {
 			SET THROTTLE TO 0.5.
@@ -802,53 +799,53 @@ function inclinationBurn {
 
 function timeToRelativeAscendingNode {
 	parameter targetVessel.
-	parameter sourceVessel IS SHIP.
+	parameter sourceVessel Is SHIP.
 
-	return timeAtNextRelativeAscendingNode(target, sourceVessel) - TIME:SECONDS.	
+	return timeAtNextRelativeAscendingNode(target, sourceVessel) - TIME:SECONDS.
 }
 
 function timeAtNextRelativeAscendingNode {
 	parameter targetVessel.
-	parameter sourceVessel IS SHIP.
+	parameter sourceVessel Is SHIP.
 
-	LOCAL shipOrbitalPosition IS positionVectorAt(sourceVessel, TIME:SECONDS).
-	LOCAL targetOrbitalPosition IS positionVectorAt(targetVessel, TIME:SECONDS).
+	Local shipOrbitalPosition Is positionVectorAt(sourceVessel, TIME:SECONDS).
+	Local targetOrbitalPosition Is positionVectorAt(targetVessel, TIME:SECONDS).
 
-	LOCAL shipOrbitalVelocity IS sourceVessel:ORBIT:VELOCITY:ORBIT.
-	LOCAL targetOrbitalVelocity IS targetVessel:ORBIT:VELOCITY:ORBIT.
+	Local shipOrbitalVelocity Is sourceVessel:ORBIT:VELOCITY:ORBIT.
+	Local targetOrbitalVelocity Is targetVessel:ORBIT:VELOCITY:ORBIT.
 
-	LOCAL shipOrbitalMomentum IS VCRS(shipOrbitalPosition, shipOrbitalVelocity).
-	LOCAL targetOrbitalMomentum IS VCRS(targetOrbitalPosition, targetOrbitalVelocity).
+	Local shipOrbitalMomentum Is VCRS(shipOrbitalPosition, shipOrbitalVelocity).
+	Local targetOrbitalMomentum Is VCRS(targetOrbitalPosition, targetOrbitalVelocity).
 
 //	drawVector(shipOrbitalMomentum, "Ship Momentum", sourceVessel:ORBIT:BODY:POSITION).
 //	drawVector(targetOrbitalMomentum, "Target Momentum", targetVessel:ORBIT:BODY:POSITION).
 
-//	LOCAL relativeInc IS VANG(shipOrbitalMomentum, targetOrbitalMomentum).
+//	Local relativeInc Is VANG(shipOrbitalMomentum, targetOrbitalMomentum).
 //	PRINT "Relative Inclination: " + relativeInc.
 
 	//Ascending or descending node
-	LOCAL vectorToAscendingNode IS VCRS(shipOrbitalMomentum, targetOrbitalMomentum).
+	Local vectorToAscendingNode Is VCRS(shipOrbitalMomentum, targetOrbitalMomentum).
 
 //	drawVector(vectorToAscendingNode, "Node Vector", sourceVessel:Orbit:Body:Position).
 
 	//The below was taken graciously from the following post:
 	//https://www.reddit.com/r/Kos/comments/4hhrld/finding_the_relative_andn/
 
-	//Calculate eccentricity vector.  
+	//Calculate eccentricity vector.
 	//See this equation: https://en.wikipedia.org/wiki/Eccentricity_vector#Calculation
-	LOCAL eccentricityVector IS getEccentricityVector(sourceVessel).
+	Local eccentricityVector Is getEccentricityVector(sourceVessel).
 
-	//Get True Anomaly of Relative Ascending Node.  
+	//Get True Anomaly of Relative Ascending Node.
 	//See this equation: https://en.wikipedia.org/wiki/True_anomaly#From_state_vectors
-	LOCAL trueAnomalyAscending iS trueAnomalyFromStateVectors(vectorToAscendingNode, shipOrbitalVelocity).
+	Local trueAnomalyAscending Is trueAnomalyFromStateVectors(vectorToAscendingNode, shipOrbitalVelocity).
 
-	Local meanAnomalyAscending IS meanAnomalyFromTrueAnomaly(trueAnomalyAscending, eccentricityVector:Mag).
+	Local meanAnomalyAscending Is meanAnomalyFromTrueAnomaly(trueAnomalyAscending, eccentricityVector:Mag).
 
 	//Get Time to Relative Ascending Node from Periapsis
-	LOCAL t IS ETA:PERIAPSIS + TIME:SECONDS - sourceVessel:ORBIT:PERIOD.
-	LOCAL n IS 360/sourceVessel:ORBIT:PERIOD.
+	Local t Is ETA:PERIAPSIS + TIME:SECONDS - sourceVessel:ORBIT:PERIOD.
+	Local n Is 360/sourceVessel:ORBIT:PERIOD.
 
-	LOCAL timeAtNextAscendingNode IS meanAnomalyAscending / n + t.
+	Local timeAtNextAscendingNode Is meanAnomalyAscending / n + t.
 
 	if (VANG(positionVectorAt(sourceVessel,timeAtNextAscendingNode), vectorToAscendingNode) > 90) {
 		SET meanAnomalyAscending TO 360 - meanAnomalyAscending.
@@ -868,22 +865,22 @@ function timeToInclinationBurn {
 	//Delta V calculation for inclination change, taken from:
 	//https://en.wikipedia.org/wiki/Orbital_inclination_change#Calculation
 
-	LOCAL relativeInc IS relativeInclination(targetVessel:ORBIT).
+	Local relativeInc Is relativeInclination(targetVessel:ORBIT).
 	PRINT "Relative Inclination: " + relativeInc.
 
-	LOCAL timeAtNextAscendingNode IS timeAtNextRelativeAscendingNode(targetVessel).
+	Local timeAtNextAscendingNode Is timeAtNextRelativeAscendingNode(targetVessel).
 
-	LOCAL vectorToAscendingNode IS positionVectorAt(SHIP, timeAtNextAscendingNode).
+	Local vectorToAscendingNode Is positionVectorAt(SHIP, timeAtNextAscendingNode).
 
-	LOCAL shipOrbitalVelocity IS SHIP:ORBIT:VELOCITY:ORBIT.
+	Local shipOrbitalVelocity Is SHIP:ORBIT:VELOCITY:ORBIT.
 
-	LOCAL trueAnomalyAscending iS trueAnomalyFromStateVectors(vectorToAscendingNode, shipOrbitalVelocity).
+	Local trueAnomalyAscending Is trueAnomalyFromStateVectors(vectorToAscendingNode, shipOrbitalVelocity).
 
-	LOCAL deltaVRequired IS inclinationChangeDeltaV(relativeInc, trueAnomalyAscending).
+	Local deltaVRequired Is inclinationChangeDeltaV(relativeInc, trueAnomalyAscending).
 
 //	PRINT "Delta V Required: " + deltaVRequired.
 
-	LOCAL halfBurnTime IS calculatehalfBurnDuration(deltaVRequired).
+	Local halfBurnTime Is calculatehalfBurnDuration(deltaVRequired).
 
 	//info("Inclination Change Half Burn Time: " + halfBurnTime).
 
@@ -900,11 +897,11 @@ function timeToInclinationBurn {
 function inclinationChangeDeltaV {
 	parameter inclinationChangeDegrees.
 	parameter trueAnomalyAtTime.
-	LOCAL e IS SHIP:ORBIT:ECCENTRICITY.
-	LOCAL omega IS SHIP:ORBIT:ARGUMENTOFPERIAPSIS.
-	LOCAL f IS trueAnomalyAtTime.
-	LOCAL n IS 360 / SHIP:ORBIT:PERIOD.
-	LOCAL a IS SHIP:ORBIT:SEMIMAJORAXIS.
+	Local e Is SHIP:ORBIT:ECCENTRICITY.
+	Local omega Is SHIP:ORBIT:ARGUMENTOFPERIAPSIS.
+	Local f Is trueAnomalyAtTime.
+	Local n Is 360 / SHIP:ORBIT:PERIOD.
+	Local a Is SHIP:ORBIT:SEMIMAJORAXIS.
 
 	PRINT "e: " + e.
 	PRINT "omega: " + omega.
@@ -912,25 +909,25 @@ function inclinationChangeDeltaV {
 	PRINT "n: " + n.
 	PRINT "a: " + a.
 
-//	LOCAL multiplier IS 2*sqrt(1 - (e*e))*cos(omega + f)*n*a / (1 + (SHIP:ORBIT:ECCENTRICITY * cos(f))).
-	LOCAL multiplier IS 2 * VELOCITY:ORBIT:MAG.
+//	Local multiplier Is 2*sqrt(1 - (e*e))*cos(omega + f)*n*a / (1 + (SHIP:ORBIT:ECCENTRICITY * cos(f))).
+	Local multiplier Is 2 * VELOCITY:ORBIT:MAG.
 
 	return multiplier * sin(inclinationChangeDegrees/2).
 }
 
 function relativeInclination {
 	parameter targetOrbit.
-	parameter sourceOrbit IS SHIP:ORBIT.
+	parameter sourceOrbit Is SHIP:ORBIT.
 
-	LOCAL shipOrbitalVelocity IS sourceOrbit:VELOCITY:ORBIT.
-	LOCAL shipOrbitalPosition IS -sourceOrbit:BODY:ORBIT:POSITION.
+	Local shipOrbitalVelocity Is sourceOrbit:VELOCITY:ORBIT.
+	Local shipOrbitalPosition Is -sourceOrbit:BODY:ORBIT:POSITION.
 
-	LOCAL targetOrbitalVelocity IS targetOrbit:VELOCITY:ORBIT.
-	LOCAL targetOrbitalPosition IS (targetOrbit:POSITION - targetOrbit:BODY:ORBIT:POSITION).
+	Local targetOrbitalVelocity Is targetOrbit:VELOCITY:ORBIT.
+	Local targetOrbitalPosition Is (targetOrbit:POSITION - targetOrbit:BODY:ORBIT:POSITION).
 
-	LOCAL shipOrbitalMomentum IS VCRS(shipOrbitalPosition, shipOrbitalVelocity).
-	LOCAL targetOrbitalMomentum IS VCRS(targetOrbitalPosition, targetOrbitalVelocity).
-	LOCAL relativeInc IS VANG(shipOrbitalMomentum, targetOrbitalMomentum).
+	Local shipOrbitalMomentum Is VCRS(shipOrbitalPosition, shipOrbitalVelocity).
+	Local targetOrbitalMomentum Is VCRS(targetOrbitalPosition, targetOrbitalVelocity).
+	Local relativeInc Is VANG(shipOrbitalMomentum, targetOrbitalMomentum).
 
 //	PRINT "Relative Inclination: " + relativeInc.
 	return relativeInc.
@@ -939,13 +936,13 @@ function relativeInclination {
 //Warning, this function assumes the two vessels are currently orbiting the same body.
 function timeOfMinimumSeparation {
 	parameter targetVessel.
-	parameter sourceVessel IS SHIP.	
+	parameter sourceVessel Is SHIP.
 
-	LOCAL startTime IS TIME:SECONDS.
-	LOCAL stepNumber IS 4.
-	LOCAL stepDuration IS SHIP:ORBIT:PERIOD / stepNumber.
+	Local startTime Is TIME:SECONDS.
+	Local stepNumber Is 4.
+	Local stepDuration Is SHIP:ORBIT:PERIOD / stepNumber.
 
-	LOCAL minimumSeparationTime IS timeOfMinimumInterceptionSeparationIterate(sourceVessel, targetVessel, startTime, stepNumber, stepDuration).
+	Local minimumSeparationTime Is timeOfMinimumInterceptionSeparationIterate(sourceVessel, targetVessel, startTime, stepNumber, stepDuration).
 
 	return minimumSeparationTime.
 }
@@ -957,19 +954,19 @@ function timeOfMinimumSeparationIterate {
 	parameter startTime.
 	parameter stepNumber.
 	parameter stepDuration.
-	parameter errorBound IS 0.01. //Error bound, in seconds.
-	parameter iterationCount IS 1.
+	parameter errorBound Is 0.01. //Error bound, in seconds.
+	parameter iterationCount Is 1.
 
-	LOCAL closestSeparationDistance IS 10000000000000000.
-	LOCAL closestSeparationTime IS startTime.
+	Local closestSeparationDistance Is 10000000000000000.
+	Local closestSeparationTime Is startTime.
 
-	FROM {LOCAL step IS 1.} UNTIL step >= stepNumber STEP {SET step TO step + 1.} DO {
+	FROM {Local step Is 1.} UNTIL step >= stepNumber STEP {SET step TO step + 1.} DO {
 //		PRINT "Step is: " + step.
-		LOCAL separationTime iS startTime + (step * stepDuration).
+		Local separationTime Is startTime + (step * stepDuration).
 
 //		PRINT "Separation Time is: " + separationTime.
 
-		Local newClosestSeparationDistanceAt IS separationDistanceAtTime(sourceVessel, targetVessel, separationTime).
+		Local newClosestSeparationDistanceAt Is separationDistanceAtTime(sourceVessel, targetVessel, separationTime).
 
 		IF (newClosestSeparationDistance < closestSeparationDistance) {
 			SET closestSeparationDistance TO newClosestSeparationDistance.
@@ -984,10 +981,10 @@ function timeOfMinimumSeparationIterate {
 		return closestSeparationTime.
 	}
 
-	LOCAL newStartTime IS closestSeparationTime - stepDuration.
-	LOCAL newStepDuration TO (stepDuration * 2) / stepNumber.
+	Local newStartTime Is closestSeparationTime - stepDuration.
+	Local newStepDuration TO (stepDuration * 2) / stepNumber.
 
-	LOCAL revisedClosestSeparationTime TO timeOfMinimumSeparationIterate(sourceVessel, targetVessel, newStartTime, stepNumber, newStepDuration, errorBound, iterationCount+1).
+	Local revisedClosestSeparationTime TO timeOfMinimumSeparationIterate(sourceVessel, targetVessel, newStartTime, stepNumber, newStepDuration, errorBound, iterationCount+1).
 
 	return revisedMinimumOrbitalIntersectionTime.
 }
@@ -997,8 +994,8 @@ function separationDistanceAtTime {
 	parameter targetVessel.
 	parameter specificTime.
 
-	LOCAL sourceVesselPosition IS POSITIONAT(sourceVessel, specificTime).
-	LOCAL targetVesselPosition IS POSITIONAT(targetVessel, specificTime).
+	Local sourceVesselPosition Is POSITIONAT(sourceVessel, specificTime).
+	Local targetVesselPosition Is POSITIONAT(targetVessel, specificTime).
 
 //	PRINT "Source Vessel Position: " + sourceVesselPosition.
 //	PRINT "Target Vessel Position: " + targetVesselPosition.
