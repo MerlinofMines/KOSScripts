@@ -1,0 +1,1 @@
+RUNPATH("0:/launch.ks").
