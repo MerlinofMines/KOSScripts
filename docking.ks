@@ -115,22 +115,13 @@ function selectDockingPort {
 	}
 }
 
-function isDocked {
-	parameter sourcePort.
-	return sourcePort:STATE:CONTAINS("Docked").
-}
-
 function dock {
 	parameter sourcePort.
 	parameter targetPort.	
 
-	SET orientation TO targetPort:PORTFACING:FOREVECTOR.
-
 	//Turn off RCS and translation control
 	SET SHIP:CONTROL:TRANSLATION TO V(0,0,0).
 	RCS OFF.
-
-	//SET sourcePort:CONTROLFROM TO TRUE.
 
 	SET refreshInterval TO 0.1.
 
@@ -140,29 +131,31 @@ function dock {
 
 	info("Moving to correct Orientation").
 	UNTIL (isDocked(sourcePort)) {
-
 		CLEARSCREEN.
 		CLEARVECDRAWS().
 
 //		PRINT("Dock State: " + sourcePort:STATE).
 
-		SET targetVector TO targetPort:NODEPOSITION - sourcePort:NODEPOSITION.
-		SET targetPrograde TO (previousTargetVector - targetVector).
-		SET targetProgradeDirection TO LOOKDIRUP(targetPrograde, targetPort:PORTFACING:TOPVECTOR).
-		SET previousTargetVector TO targetVector.
 		SET orientation TO -targetPort:PORTFACING:FOREVECTOR.
 		SET orientationDirection TO LOOKDIRUP(orientation, targetPort:PORTFACING:TOPVECTOR).
-		SET targetVector TO targetPort:NODEPOSITION - sourcePort:NODEPOSITION.
-		SET targetDirection TO LOOKDIRUP(targetVector, targetPort:PORTFACING:TOPVECTOR).
+		LOCK STEERING TO orientationDirection.
 
-		Local navballDesiredDirection IS navball_direction(SHIP, orientationDirection).
-		holdDesiredDirection(navballDesiredDirection).
+		LOCAL targetVector IS targetPort:NODEPOSITION - sourcePort:NODEPOSITION.
+		LOCAL targetPrograde IS (previousTargetVector - targetVector).
+		SET previousTargetVector TO targetVector.
+
+		LOCAL desiredSpeed IS getDesiredSpeed(sourcePort, targetPort).
+		LOCAL desiredPrograde IS getDesiredPrograde(orientation, targetVector, desiredSpeed).
+
+//		SET targetProgradeDirection TO LOOKDIRUP(targetPrograde, targetPort:PORTFACING:TOPVECTOR).
+//		SET targetDirection TO LOOKDIRUP(targetVector, targetPort:PORTFACING:TOPVECTOR).
+
+//		Local navballDesiredDirection IS navball_direction(SHIP, orientationDirection).
+//		holdDesiredDirection(navballDesiredDirection).
 
 	//	PRINT("Distance: " + targetVector:MAG).
 	//	PRINT("Prograde: " + targetPrograde:MAG).
 
-		LOCAL desiredSpeed IS getDesiredSpeed(sourcePort, targetPort).
-		LOCAL desiredPrograde IS getDesiredPrograde(orientation, targetVector, desiredSpeed).
 
 		//Source Port Vectors
 	//	drawVector(orientation, "Orientation").
@@ -200,16 +193,15 @@ function dock {
 			LOCAL desiredTranslation IS getOrientedTranslation(orientationDirection, desiredPrograde).
 			LOCAL currentTranslation IS getOrientedTranslation(orientationDirection, targetPrograde).
 			LOCAL deltaTranslation IS desiredTranslation - currentTranslation.
-
-			PRINT("Translation Change: " + deltaTranslation).
-			PRINT("Translation Change Mag: " + deltaTranslation:MAG).
-
-	//		drawVector(desiredTranslation*100, "Desired Translation", sourcePort:NODEPOSITION).
-	//		drawVector(currentTranslation*100, "Current Translation", sourcePort:NODEPOSITION).
-	//		drawVector(deltaTranslation*100, "Translation Change Needed", sourcePort:NODEPOSITION).
-
 			LOCAL currentTranslation IS getOrientedTranslation(orientationDirection, targetPrograde).
 			LOCAL deltaTranslation IS desiredTranslation - currentTranslation.
+
+//			PRINT("Translation Change: " + deltaTranslation).
+//			PRINT("Translation Change Mag: " + deltaTranslation:MAG).
+
+//			drawVector(desiredTranslation*100, "Desired Translation", sourcePort:NODEPOSITION).
+//			drawVector(currentTranslation*100, "Current Translation", sourcePort:NODEPOSITION).
+//			drawVector(deltaTranslation*100, "Translation Change Needed", sourcePort:NODEPOSITION).
 
 			//Up/Down
 			if(abs(deltaTranslation:Y) > 0.001) {
@@ -325,4 +317,9 @@ function getDesiredSpeed {
 	} else {
 		return 0.0125.
 	}
+}
+
+function isDocked {
+	parameter sourcePort.
+	return sourcePort:STATE:CONTAINS("Docked").
 }
