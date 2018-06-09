@@ -4,8 +4,6 @@ RUNONCEPATH("0:/maneuver.ks").
 RUNONCEPATH("0:/orbital_information.ks").
 RUNONCEPATH("0:/input.ks").
 
-rendevousWithPlan().
-
 function rendevousWithPlan {
 	LIST Targets IN targets.
 
@@ -42,17 +40,92 @@ function finalApproach {
 	parameter targetVessel.
 	parameter sourceVessel Is SHIP.
 
-// calculate time to sucide burn.
+    //Step 1: Calculate
+    shortInfo("Calculating separation distance at final approach.").
+    Local separationTime IS timeOfMinimumSeparation(targetVessel, sourceVessel, timeAtNextApoapsis(sourceVessel)).
 
-//	WAIT UNTIL (positionAt(targetVessel, TIME:SECONDS) - positionAt(targetVessel, TIME:SECONDS)):MAG < 1000.
+    Local sourcePosition IS positionVectorAt(sourceVessel, separationTime).
+    Local targetPosition IS positionVectorAt(targetVessel, separationTime).
 
-//	suicideBurn(targetVessel).
+    Local separationDistance IS (targetPosition - sourcePosition):MAG.
+
+    Print "Minimum Separation Time: " + separationTime.
+    Print "Minimum Separation Distance: " + separationDistance.
+
+    drawVector(sourcePosition, "Source Position", sourceVessel:Orbit:Body:Position).
+    drawVector(sourcePosition, "Target Position", sourceVessel:Orbit:Body:Position).
 
 
+
+    if (separationTime - 60 > TIME:SECONDS) {
+        WARPTO(separationTime - 60).
+    }
+
+    SET NAVMODE TO "Target".
+    SET SASMODE TO "Retrograde".
+
+    UNTIL (VANG(sourceVessel:Facing:Forevector, relativeVelocity(targetVessel, sourceVessel)) < 0.1) {
+        CLEARSCREEN.
+        CLEARVECDRAWS().
+
+        Local relVelocity IS relativeVelocity(targetVessel, sourceVessel).
+
+//        drawVector(relVelocity, "Relative Velocity").
+        PRINT "Relative Velocity: " + relVelocity:MAG.
+        Print "Angle: " + VANG(sourceVessel:Facing:Forevector, relativeVelocity(targetVessel, sourceVessel)).
+
+        WAIT 0.01.
+    }
+
+    Print "Oriented Correctly.  Waiting for Suicide Burn.".
+
+    LOCAL DONE IS FALSE.
+
+    Local minSeparationDistance IS MAX(30, separationDistance).//Don't come closer than 30 meters.
+
+    UNTIL FALSE {
+        CLEARSCREEN.
+        CLEARVECDRAWS().
+        Local relVelocity IS relativeVelocity(targetVessel, sourceVessel).
+
+        Local suicideBurnTime IS calculateBurnDuration(relVelocity:MAG).
+
+        Local finalSeparationDistance IS separationDistanceAtTime(sourceVessel, targetVessel, TIME:SECONDS + suicideBurnTime).
+
+        Print "Suicide Burn Time: " + suicideBurnTime.
+        Print "Separation Distance: " + finalSeparationDistance.
+        //TODO: Fudge factor for when we aren't going to come within 50 meters of the station, to ensure we burn at the appropriate time.
+        if ( finalSeparationDistance < minSeparationDistance + 1) {
+            BREAK.
+        }
+    }
+
+    shortInfo("Executing Suicide Burn.").
+    suicideBurn(targetVessel).
+    shortInfo("Suicide Burn Complete.").
+}
+
+function suicideBurn {
+    parameter targetVessel.
+    parameter sourceVessel IS SHIP.
+
+    UNTIL relativeVelocity(targetVessel, sourceVessel):MAG < 0.01 {
+
+        Local relVelocity IS relativeVelocity(targetVessel, sourceVessel).
+        Local burnTime IS calculateBurnDuration(relVelocity:MAG).
+
+        SET THROTTLE TO MIN(1, burnTime).
+    }
+
+    SET THROTTLE TO 0.
+    SET SASMODE TO "STABILITYASSIST".
+
+    Print "Suicide burn complete.  Final Relative Velocity: " + relativeVelocity(targetVessel, sourceVessel):MAG.
+    Print "Final Separation Distance: " + separationDistanceAtTime(sourceVessel, targetVessel, TIME:SECONDS).
 }
 
 function circularizeAtApoapsis {
-	parameter sourceVessel Is SHIP.
+    parameter sourceVessel Is SHIP.
 
 	shortInfo("Calculating Apoapsis Circularization Burn").
 	Local nd Is getApoapsisCircularizationBurnManeuverNode(sourceVessel).
@@ -664,12 +737,11 @@ function getTimeToClosestApproachAt {
 //This function will perform a rendevousBurn, meaning that it will begin executing a burn (prograde currently)
 //and will terminate the burn once the separation distance between the sourceVessel and the targetVessel on the next
 //rotation Is at a minimum.
+//Currently Unused, but maybe incorporate into
 function rendevousBurn {
 	parameter targetVessel.
 	parameter minimumSeparationTime. //This Is the time we expect to be at minimum separation after completing burn.
 	parameter sourceVessel Is SHIP.
-
-	SET THROTTLE to 1.0.
 
 	Local minSeparationDistance Is separationDistanceAtTime(SHIP, targetVessel, minimumSeparationTime).
 
@@ -691,7 +763,9 @@ function rendevousBurn {
 			SET THROTTLE to 0.2.
 		} else if (newDistance < 2000) {
 			SET throttle to 0.5.
-		}
+		} else {
+            SET THROTTLE to 1.0.
+        }
 	}
 
 	SET THROTTLE TO 0.0.
@@ -933,16 +1007,23 @@ function relativeInclination {
 	return relativeInc.
 }
 
+function relativeVelocity {
+    parameter targetVessel.
+    parameter sourceVessel IS SHIP.
+
+    return targetVessel:Orbit:Velocity:Orbit - sourceVessel:Orbit:Velocity:Orbit.
+}
+
 //Warning, this function assumes the two vessels are currently orbiting the same body.
 function timeOfMinimumSeparation {
 	parameter targetVessel.
 	parameter sourceVessel Is SHIP.
+    parameter startTime IS TIME:SECONDS.
 
-	Local startTime Is TIME:SECONDS.
 	Local stepNumber Is 4.
 	Local stepDuration Is SHIP:ORBIT:PERIOD / stepNumber.
 
-	Local minimumSeparationTime Is timeOfMinimumInterceptionSeparationIterate(sourceVessel, targetVessel, startTime, stepNumber, stepDuration).
+	Local minimumSeparationTime Is timeOfMinimumSeparationIterate(sourceVessel, targetVessel, startTime, stepNumber, stepDuration).
 
 	return minimumSeparationTime.
 }
@@ -957,7 +1038,7 @@ function timeOfMinimumSeparationIterate {
 	parameter errorBound Is 0.01. //Error bound, in seconds.
 	parameter iterationCount Is 1.
 
-	Local closestSeparationDistance Is 10000000000000000.
+	Local closestSeparationDistance Is separationDistanceAtTime(sourceVessel, targetVessel, startTime).
 	Local closestSeparationTime Is startTime.
 
 	FROM {Local step Is 1.} UNTIL step >= stepNumber STEP {SET step TO step + 1.} DO {
@@ -966,7 +1047,7 @@ function timeOfMinimumSeparationIterate {
 
 //		PRINT "Separation Time is: " + separationTime.
 
-		Local newClosestSeparationDistanceAt Is separationDistanceAtTime(sourceVessel, targetVessel, separationTime).
+		Local newClosestSeparationDistance Is separationDistanceAtTime(sourceVessel, targetVessel, separationTime).
 
 		IF (newClosestSeparationDistance < closestSeparationDistance) {
 			SET closestSeparationDistance TO newClosestSeparationDistance.
@@ -975,10 +1056,10 @@ function timeOfMinimumSeparationIterate {
 	}
 
 	if(stepDuration < errorBound) {
-		PRINT "Achieved requested result in " + iterationCount + " iterations".
-		PRINT "Step Duration: " + stepDuration.
-		PRINT "Closest Separation Distance: " + closestSeparationDistance.
-		return closestSeparationTime.
+//		PRINT "Achieved requested result in " + iterationCount + " iterations".
+//		PRINT "Step Duration: " + stepDuration.
+//		PRINT "Closest Separation Distance: " + closestSeparationDistance.
+        return closestSeparationTime.
 	}
 
 	Local newStartTime Is closestSeparationTime - stepDuration.
@@ -986,7 +1067,7 @@ function timeOfMinimumSeparationIterate {
 
 	Local revisedClosestSeparationTime TO timeOfMinimumSeparationIterate(sourceVessel, targetVessel, newStartTime, stepNumber, newStepDuration, errorBound, iterationCount+1).
 
-	return revisedMinimumOrbitalIntersectionTime.
+	return revisedClosestSeparationTime.
 }
 
 function separationDistanceAtTime {

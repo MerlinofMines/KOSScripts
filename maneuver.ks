@@ -133,59 +133,14 @@ function maneuverBurn {
     }
 }
 
-function maneuverBurn2 {
-        // Get Next Maneuver
-    SET n TO NEXTNODE.
-
-    SET deltaV to n:BURNVECTOR:MAG.
-
-    // In the pursuit of a1...
-    // What's our effective ISP?
-    SET eIsp TO 0.
-    SET eThrust to 0.
-
-    LIST engines IN my_engines.
-    FOR eng IN my_engines {
-        SET eIsp TO eIsp + eng:maxthrust / maxthrust * eng:isp.
-        Set eThrust To eThrust + eng:AVAILABLETHRUST.
-    }
-
-    //Print ISP:
-    //Print "Specific Impulse: " + eIsp.
-
-    //Print Thrust
-    //Print "Thrust: " + eThrust.
-
-    // What's our effective exhaust velocity?
-    SET Ve TO eIsp * 9.82.
-    //Print "Exhaust Velocity: " + Ve.
-
-    // What's the Flow Rate? (metric tons / s)
-    Set eFlowRate TO eThrust / Ve.
-    //Print "Flow Rate: " + eFlowRate.
-
-    Set startMass To mass.
-
-    SET endMass TO CONSTANT():e^(LN(startMass) - deltaV/Ve).
-    //Print "Start Mass: " + startMass.
-    //Print "End Mass: " + endMass.
-
-    SET deltaMass TO (startMass - endMass) * CONSTANT():e^(-1*(deltaV * 0.001) / Ve).
-    //Print "Delta Mass: " + deltaMass.
-
-    Set t To deltaMass / eFlowRate.
-
-    Print "Node Burn time: " + t.
-
-    lock throttle to 1.
-    Wait t.
-    lock throttle to 0.
-}
-
 function calculateHalfBurnDuration {
     parameter deltaV.
 
-    LOCAL halfDeltaV IS deltaV/2.
+    return calculateBurnDuration(deltaV/2).
+}
+
+function calculateBurnDuration {
+    parameter deltaV.
 
     // In the pursuit of a1...
     // What's our effective ISP?
@@ -217,11 +172,11 @@ function calculateHalfBurnDuration {
 
     Set startMass To mass.
 
-    SET endMass TO CONSTANT():e^(LN(startMass) - halfDeltaV/Ve).
+    SET endMass TO CONSTANT():e^(LN(startMass) - (deltaV)/Ve).
     //Print "Start Mass: " + startMass.
     //Print "End Mass: " + endMass.
 
-    SET deltaMass TO (startMass - endMass) * CONSTANT():e^(-1*(halfDeltaV * 0.001) / Ve).
+    SET deltaMass TO (startMass - endMass) * CONSTANT():e^(-1*((deltaV) * 0.001) / Ve).
     //Print "Delta Mass: " + deltaMass.
 
     Set t To deltaMass / eFlowRate.
