@@ -7,7 +7,6 @@ RUNONCEPATH("0:/ssto.ks").
 
 //TODO: Should these be global?  Doesn't really make sense to have more than 1 mission widget per CPU..this is probably ok.
 SET MISSION_TASK_LIST TO list().
-
 SET MISSION_SOI TO SHIP:BODY.
 
 function openMissionControl {
@@ -155,12 +154,23 @@ function addMissionTaskButtons {
     Local testCategory IS addTab(taskCategories, "Test").
 
     Local testTaskButton IS testCategory:ADDBUTTON("Test Task 1").
-    SET testTaskButton:ONCLICK TO {addMissionTask(overviewTab, testTask("Test Mission 1")).}.
+    SET testTaskButton:ONCLICK TO {
+        addMissionTask(overviewTab, testTask("Test Mission 1")).
+        activateButton(testTaskButton).
+    }.
 
     Local testTaskButton2 IS testCategory:ADDBUTTON("Test Task 2").
-    SET testTaskButton2:ONCLICK TO {addMissionTask(overviewTab, testTask("Test Mission 2")).}.
+    SET testTaskButton2:ONCLICK TO {
+        addMissionTask(overviewTab, testTask("Test Mission 2")).
+        activateButton(testTaskButton2).
+    }.
+}
 
-
+function activateButton {
+    parameter button.
+    SET button:STYLE:TEXTCOLOR TO GREEN.
+    WAIT 1.
+    SET button:STYLE:TEXTCOLOR TO WHITE.
 }
 
 function executeMission {
@@ -192,7 +202,10 @@ function sstoPanel {
     parameter panel.
 
     Local sstoButton IS panel:ADDBUTTON("SSTO LAUNCH").
-    SET sstoButton:ONCLICK TO {addMissionTask(overviewTab, sstoTask()).}.
+    SET sstoButton:ONCLICK TO {
+        addMissionTask(overviewTab, sstoTask()).
+        activateButton(sstoButton).
+    }.
 }
 
 function rendevousTask {
@@ -214,8 +227,11 @@ function rendevousPanel {
         popup:addoption(option).
     }
 
-    Local matchInclinationButton IS panel:ADDBUTTON("Rendevous").
-    SET matchInclinationButton:ONCLICK TO {addMissionTask(overviewTab, rendevousTask(popup:VALUE)).}.
+    Local rendevousButton IS panel:ADDBUTTON("Rendevous").
+    SET rendevousButton:ONCLICK TO {
+        addMissionTask(overviewTab, rendevousTask(popup:VALUE)).
+        activateButton(rendevousButton).
+    }.
 }
 
 function matchInclinationTask {
@@ -237,7 +253,10 @@ function matchInclinationPanel {
     }
 
     Local matchInclinationButton IS panel:ADDBUTTON("Match Inclination").
-    SET matchInclinationButton:ONCLICK TO {addMissionTask(overviewTab, matchInclinationTask(popup:VALUE)).}.
+    SET matchInclinationButton:ONCLICK TO {
+        addMissionTask(overviewTab, matchInclinationTask(popup:VALUE)).
+        activateButton(matchInclinationButton).
+    }.
 }
 
 function dockOnPortTask {
@@ -272,9 +291,9 @@ function dockOnPortPanel {
     }
 
     Local dockButton IS panel:ADDBUTTON("Dock").
-    SET dockButton:ONCLICK TO {addMissionTask(overviewTab, dockOnPortTask(
-        sourcePortPopup:VALUE,
-        targetPopup:VALUE)).
+    SET dockButton:ONCLICK TO {
+        addMissionTask(overviewTab, dockOnPortTask( sourcePortPopup:VALUE, targetPopup:VALUE)).
+        activateButton(dockButton).
     }.
 }
 
