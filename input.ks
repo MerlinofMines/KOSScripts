@@ -11,26 +11,27 @@ function selectOption {
 
 	SET isOKClicked TO FALSE.
 
-	LOCAL gui IS GUI(200).
-	LOCAL label IS gui:ADDLABEL(title).
-	LOCAL popup is gui:addPopupMenu().
-	LOCAL ok IS gui:ADDBUTTON("OK").
+	LOCAL selectGUI IS GUI(200).
+	LOCAL label IS selectGUI:ADDLABEL(title).
+	LOCAL popup is selectGUI:addPopupMenu().
+	LOCAL ok IS selectGUI:ADDBUTTON("OK").
+
+	SET ok:ONCLICK to myClickChecker@.
 
 	for option in options {
 		popup:addoption(option).
-	}	
+	}
 
-	gui:SHOW().
+	selectGUI:SHOW().
 
-	SET ok:ONCLICK to myClickChecker@.
-//	wait until popup:CHANGED.
 	wait until isOKClicked.
-	gui:HIDE().
+
+	selectGUI:HIDE().
 
 	return popup:value.
-
 }
 
 function myClickChecker {
+	PRINT "I've been clicked!".
 	SET isOKClicked TO TRUE.
 }

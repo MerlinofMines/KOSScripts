@@ -5,8 +5,6 @@ RUNONCEPATH("0:/draw.ks").
 RUNONCEPATH("0:/control.ks").
 RUNONCEPATH("0:/orbital_navigation.ks").
 
-dockWithPlan().
-
 function getDockableTargets {
 	parameter sourceVessel IS SHIP.
 	LIST Targets IN targets.
@@ -74,7 +72,6 @@ function dockWithPlan {
 
 function autoSelectDockingPort {
 	parameter targetVessel.
-	parameter sourceVessel IS SHIP.
 
 	Local dockablePorts IS getDockablePorts(targetVessel).
 
@@ -84,19 +81,19 @@ function autoSelectDockingPort {
 	} 
 
 	Local bestPort IS dockingPorts[0].
-	Local minimumDistance IS (dockablePort:NodePosition - sourceVessel:Orbit:Position):Mag.
+	Local minimumDistance IS (bestPort:NodePosition - SHIP:Orbit:Position):Mag.
 
 	FOR dockablePort IN dockablePorts {
 		Local newBestPort IS dockingPorts[0].
-		Local newMinimumDistance IS (dockablePort:NodePosition - sourceVessel:Orbit:Position):Mag.
+		Local newMinimumDistance IS (dockablePort:NodePosition - SHIP:Orbit:Position):Mag.
 
-//		IFm				
-
-//		IF (newMinimumDistance < minimumDistance) {
-
-//		}
-
+		IF (newMinimumDistance < minimumDistance) {
+			SET minimumDistance TO newMinimumDistance.
+			SET bestPort TO newBestPort.
+		}
 	}
+
+	return bestPort.
 }
 
 function selectDockingPort {
@@ -113,6 +110,15 @@ function selectDockingPort {
 	} else {
 		return selectOption(dockingPorts, title).
 	}
+}
+
+function dockWithTarget {
+	parameter sourcePort.
+	parameter targetVessel.
+
+	Local targetPort IS autoSelectDockingPort(targetVessel).
+
+	dock(sourcePort, targetPort).
 }
 
 function dock {

@@ -9,7 +9,7 @@ function rendevousWithPlan {
 
 	Local targetVessel Is selectTargetVessel(targets, "Select Rendevous Target").
 
-	Print "Beginning Rendevous with " + targetVessel.
+    Print "Beginning Rendevous with " + targetVessel.
 	rendevous(targetVessel).
 }
 
