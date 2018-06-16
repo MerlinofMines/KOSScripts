@@ -12,10 +12,9 @@ SET MISSION_SOI TO SHIP:BODY.
 function openMissionControl {
     SET isLaunchClicked TO FALSE.
 
-    LOCAL gui IS GUI(400,800).
-    LOCAL label IS gui:ADDLABEL("Mission Control").
+    LOCAL gui IS GUI(800,800).
 
-    addMissionTabWidget(gui).
+    addMissionTabs(gui).
 
     LOCAL launchButton IS gui:ADDBUTTON("Launch Mission").
 
@@ -35,28 +34,44 @@ function launchClickChecker {
     SET isLaunchClicked TO TRUE.
 }
 
-function addMissionTabWidget {
+function addMissionTabs {
     parameter gui.
 
-    Local missionTabs IS addTabWidget(gui).
+    LOCAL columns IS gui:ADDHLAYOUT().
 
-    Local overviewTab IS addTab(missionTabs, "Mission Overview").
+    LOCAL overviewTab IS columns:ADDVBOX().
+    SET overviewTab:STYLE:WIDTH TO 400.
+    SET overviewTab:STYLE:HEIGHT TO 400.
 
-    Local addTaskTab IS addTab(missionTabs, "Add Task").
+    LOCAL addTaskTab IS columns:ADDVBOX().
+    SET addTaskTab:STYLE:WIDTH to 400.
+    SET addTaskTab:STYLE:HEIGHT to 400.
+
+    //Option 1: Show both overview & Tasks side by side
+    addMissionTaskButtons(overviewTab, addTaskTab).
+    refreshActiveTasks(overviewTab).
+//    addMissionTaskButtons(overviewTab, addTaskTab).
+
+    //Option 2: Tabs, showing overview or tasks only.
+//    Local missionTabs IS addTabWidget(gui).
+//    Local overviewTab IS addTab(missionTabs, "Mission Overview").
+//    Local addTaskTab IS addTab(missionTabs, "Add Task").
 //    addTaskTab:addLabel("Add Task").
 
-    addMissionTaskButtons(overviewTab, addTaskTab).
-
-    return missionTabs.
+//    return missionTabs.
 }
 
 function refreshActiveTasks {
     parameter overviewTab.
 
     overviewTab:CLEAR().
+    LOCAL label IS overviewTab:ADDLABEL("Mission Overview").
+    SET label:STYLE:ALIGN TO "CENTER".
+
 //    overviewTab:AddLabel("Mission Overview").
 
-    Local missionBox IS overviewTab:addVLayout().
+    Local layout IS overviewTab:addVLayout().
+    Local missionBox IS layout:ADDSCROLLBOX().
 
     Local taskIterator IS MISSION_TASK_LIST:COPY:ITERATOR.
 
@@ -76,6 +91,11 @@ function refreshActiveTasks {
         Local missionlabel IS getTaskName(taskIterator:VALUE).
 
         taskBox:AddLabel(missionlabel).
+    }
+
+    IF MISSION_TASK_LIST:LENGTH > 1 {
+        LOCAL clearButton IS overviewTab:ADDButton("Clear all Tasks").
+        SET clearButton:ONCLICK TO { clearMissionTasks(overviewTab).}.
     }
 }
 
@@ -118,9 +138,22 @@ function removeMissionTask {
     refreshActiveTasks(overviewTab).
 }
 
+function clearMissionTasks {
+    parameter overviewTab.
+
+    MISSION_TASK_LIST:CLEAR().
+
+    Print "Cleared Mission Tasks.".
+
+    refreshActiveTasks(overviewTab).
+}
+
 function addMissionTaskButtons {
     parameter overviewTab.
     parameter addTaskTab.
+
+    LOCAL label IS addTaskTab:ADDLABEL("Add Mission Tasks").
+    SET label:STYLE:ALIGN TO "CENTER".
 
     Local taskCategories IS addTabWidget(addTaskTab).
 
@@ -171,7 +204,7 @@ function activateButton {
     SET button:STYLE:TEXTCOLOR TO GREEN.
     SET button:STYLE:HOVER:TEXTCOLOR TO GREEN.
     SET button:STYLE:ON:TEXTCOLOR TO GREEN.
-    WAIT 1.
+    WAIT 0.25.
     SET button:STYLE:TEXTCOLOR TO WHITE.
     SET button:STYLE:HOVER:TEXTCOLOR TO WHITE.
     SET button:STYLE:ON:TEXTCOLOR TO WHITE.
