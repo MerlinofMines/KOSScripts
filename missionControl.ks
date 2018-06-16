@@ -169,8 +169,12 @@ function addMissionTaskButtons {
 function activateButton {
     parameter button.
     SET button:STYLE:TEXTCOLOR TO GREEN.
+    SET button:STYLE:HOVER:TEXTCOLOR TO GREEN.
+    SET button:STYLE:ON:TEXTCOLOR TO GREEN.
     WAIT 1.
     SET button:STYLE:TEXTCOLOR TO WHITE.
+    SET button:STYLE:HOVER:TEXTCOLOR TO WHITE.
+    SET button:STYLE:ON:TEXTCOLOR TO WHITE.
 }
 
 function executeMission {

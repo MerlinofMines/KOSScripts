@@ -783,23 +783,27 @@ function matchInclination {
 
 	Local relativeInc Is relativeInclination(targetVessel:ORBIT).
 
-	if (relativeInc < 0.01) {
+	if (relativeInc < 0.001) {
 		PRINT "Inclination Change Complete.".
 		PRINT "Final Relative Inclination: " + relativeInclination(targetVessel:ORBIT).
 		return.
 	}
 
 	SAS ON.
+	SET NAVMODE TO "Orbit".
+	WAIT 0.5.
 	SET SASMODE TO "ANTINORMAL".
+	WAIT 0.5.
 
 	Local shipOrbitalVelocity Is SHIP:ORBIT:VELOCITY:ORBIT.
 	Local shipOrbitalPosition Is SHIP:ORBIT:BODY:ORBIT:POSITION.
 
+	PRINT "Rotating to Anti-Normal in preparation for inclination burn.".
+
 	UNTIL (VANG(SHIP:FACING:FOREVECTOR, VCRS(shipOrbitalVelocity,shipOrbitalPosition)) < 0.1) {
-		CLEARSCREEN.
-		CLEARVECDRAWS().
-		PRINT "Rotating to Anti-Normal in preparation for inclination burn.".
-		PRINT "Angle: " + VANG(SHIP:FACING:FOREVECTOR, VCRS(shipOrbitalVelocity,shipOrbitalPosition)).
+//		CLEARSCREEN.
+//		CLEARVECDRAWS().
+//		PRINT "Angle: " + VANG(SHIP:FACING:FOREVECTOR, VCRS(shipOrbitalVelocity,shipOrbitalPosition)).
 //		drawVector(SHIP:FACING:FOREVECTOR:NORMALIZED*30,"Facing").
 //		drawVector(VCRS(shipOrbitalVelocity,shipOrbitalPosition)*30,"Normal").
 
@@ -814,8 +818,8 @@ function matchInclination {
     }
 
 	UNTIL TIME:SECONDS > timeToBurn {
-		CLEARSCREEN.
-		Print "Time to Burn: " + (timeToBurn - TIME:SECONDS).
+//		CLEARSCREEN.
+//		Print "Time to Burn: " + (timeToBurn - TIME:SECONDS).
 	}
 
 	inclinationBurn(targetVessel).
@@ -977,11 +981,11 @@ function inclinationChangeDeltaV {
 	Local n Is 360 / SHIP:ORBIT:PERIOD.
 	Local a Is SHIP:ORBIT:SEMIMAJORAXIS.
 
-	PRINT "e: " + e.
-	PRINT "omega: " + omega.
-	PRINT "f: " + f.
-	PRINT "n: " + n.
-	PRINT "a: " + a.
+//	PRINT "e: " + e.
+//	PRINT "omega: " + omega.
+//	PRINT "f: " + f.
+//	PRINT "n: " + n.
+//	PRINT "a: " + a.
 
 //	Local multiplier Is 2*sqrt(1 - (e*e))*cos(omega + f)*n*a / (1 + (SHIP:ORBIT:ECCENTRICITY * cos(f))).
 	Local multiplier Is 2 * VELOCITY:ORBIT:MAG.
