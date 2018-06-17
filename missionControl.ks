@@ -39,22 +39,24 @@ function addMissionTabs {
 
     LOCAL columns IS gui:ADDHLAYOUT().
 
-    LOCAL overviewTab IS columns:ADDVBOX().
-    SET overviewTab:STYLE:WIDTH TO 400.
-    SET overviewTab:STYLE:HEIGHT TO 400.
+    //Declaring global, to ease readability of other methods in mission control which need to update the overview panel
+    //based on events.
+    DECLARE GLOBAL OVERVIEW_TAB IS columns:ADDVBOX().
+    SET OVERVIEW_TAB:STYLE:WIDTH TO 400.
+    SET OVERVIEW_TAB:STYLE:HEIGHT TO 400.
 
     LOCAL addTaskTab IS columns:ADDVBOX().
     SET addTaskTab:STYLE:WIDTH to 400.
     SET addTaskTab:STYLE:HEIGHT to 400.
 
     //Option 1: Show both overview & Tasks side by side
-    addMissionTaskButtons(overviewTab, addTaskTab).
-    refreshActiveTasks(overviewTab).
-//    addMissionTaskButtons(overviewTab, addTaskTab).
+    addMissionTaskButtons(addTaskTab).
+    refreshActiveTasks().
+//    addMissionTaskButtons(addTaskTab).
 
     //Option 2: Tabs, showing overview or tasks only.
 //    Local missionTabs IS addTabWidget(gui).
-//    Local overviewTab IS addTab(missionTabs, "Mission Overview").
+//    DECLARE GLOBAL OVERVIEW_TAB IS addTab(missionTabs, "Mission Overview").
 //    Local addTaskTab IS addTab(missionTabs, "Add Task").
 //    addTaskTab:addLabel("Add Task").
 
@@ -62,15 +64,13 @@ function addMissionTabs {
 }
 
 function refreshActiveTasks {
-    parameter overviewTab.
-
-    overviewTab:CLEAR().
-    LOCAL label IS overviewTab:ADDLABEL("Mission Overview").
+    OVERVIEW_TAB:CLEAR().
+    LOCAL label IS OVERVIEW_TAB:ADDLABEL("Mission Overview").
     SET label:STYLE:ALIGN TO "CENTER".
 
-//    overviewTab:AddLabel("Mission Overview").
+//    OVERVIEW_TAB:AddLabel("Mission Overview").
 
-    Local layout IS overviewTab:addVLayout().
+    Local layout IS OVERVIEW_TAB:addVLayout().
     Local missionBox IS layout:ADDSCROLLBOX().
 
     Local taskIterator IS MISSION_TASK_LIST:COPY:ITERATOR.
@@ -85,7 +85,7 @@ function refreshActiveTasks {
 
         SET removeButton:STYLE:WIDTH TO 20.
         SET removeButton:STYLE:MARGIN:RIGHT TO 5.
-        SET removeButton:ONCLICK TO {removeMissionTask(overviewTab, index).}.
+        SET removeButton:ONCLICK TO {removeMissionTask(index).}.
 
         //Mission Label
         Local missionlabel IS getTaskName(taskIterator:VALUE).
@@ -94,13 +94,12 @@ function refreshActiveTasks {
     }
 
     IF MISSION_TASK_LIST:LENGTH > 1 {
-        LOCAL clearButton IS overviewTab:ADDButton("Clear all Tasks").
-        SET clearButton:ONCLICK TO { clearMissionTasks(overviewTab).}.
+        LOCAL clearButton IS OVERVIEW_TAB:AddButton("Clear all Tasks").
+        SET clearButton:ONCLICK TO { clearMissionTasks().}.
     }
 }
 
 function insertMissionTask {
-    parameter overviewTab.
     parameter index.
     parameter task.
 
@@ -109,11 +108,10 @@ function insertMissionTask {
     LOCAL taskName IS getTaskName(task).
     Print "Inserted Mission Task: " + taskName.
 
-    refreshActivetasks(overviewTab).
+    refreshActivetasks().
 }
 
 function addMissionTask {
-    parameter overviewTab.
     parameter task.
 
     MISSION_TASK_LIST:ADD(task).
@@ -121,11 +119,10 @@ function addMissionTask {
     LOCAL taskName IS getTaskName(task).
     Print "Added Mission Task: " + taskName.
 
-    refreshActivetasks(overviewTab).
+    refreshActivetasks().
 }
 
 function removeMissionTask {
-    parameter overviewTab.
     parameter index.
 
     LOCAL task IS MISSION_TASK_LIST[index].
@@ -135,21 +132,18 @@ function removeMissionTask {
 
     PRINT "Removed Mission Task: " + taskName.
 
-    refreshActiveTasks(overviewTab).
+    refreshActiveTasks().
 }
 
 function clearMissionTasks {
-    parameter overviewTab.
-
     MISSION_TASK_LIST:CLEAR().
 
     Print "Cleared Mission Tasks.".
 
-    refreshActiveTasks(overviewTab).
+    refreshActiveTasks().
 }
 
 function addMissionTaskButtons {
-    parameter overviewTab.
     parameter addTaskTab.
 
     LOCAL label IS addTaskTab:ADDLABEL("Add Mission Tasks").
@@ -164,60 +158,59 @@ function addMissionTaskButtons {
     Local shipOptions IS addTabWidget(shipCategory, TRUE).
 
     Local gearTab IS addTab(shipOptions, "Gear", TRUE).
-    addMissionTaskButton(overviewTab, gearTab, "Lower Gear", {GEAR ON. WAIT 5.}).
-    addMissionTaskButton(overviewTab, gearTab, "Raise Gear", {GEAR OFF. WAIT 5.}).
+    addMissionTaskButton(gearTab, "Lower Gear", {GEAR ON. WAIT 5.}).
+    addMissionTaskButton(gearTab, "Raise Gear", {GEAR OFF. WAIT 5.}).
 
     Local brakeTab IS addTab(shipOptions, "Brakes", TRUE).
-    addMissionTaskButton(overviewTab, brakeTab, "Brakes On", {BRAKES ON. WAIT 1.}).
-    addMissionTaskButton(overviewTab, brakeTab, "Brakes Off", {BRAKES OFF. WAIT 1.}).
+    addMissionTaskButton(brakeTab, "Brakes On", {BRAKES ON. WAIT 1.}).
+    addMissionTaskButton(brakeTab, "Brakes Off", {BRAKES OFF. WAIT 1.}).
 
     Local lightTab IS addTab(shipOptions, "Lights", TRUE).
-    addMissionTaskButton(overviewTab, lightTab, "Lights On", {LIGHTS ON. WAIT 1.}).
-    addMissionTaskButton(overviewTab, lightTab, "Lights Off", {LIGHTS OFF. WAIT 1.}).
+    addMissionTaskButton(lightTab, "Lights On", {LIGHTS ON. WAIT 1.}).
+    addMissionTaskButton(lightTab, "Lights Off", {LIGHTS OFF. WAIT 1.}).
 
     Local solarTab IS addTab(shipOptions, "Solar Panels", TRUE).
-    addMissionTaskButton(overviewTab, solarTab, "Deploy Panels", {PANELS ON. WAIT 10.}).
-    addMissionTaskButton(overviewTab, solarTab, "Retract Panels", {PANELS OFF. WAIT 10.}).
+    addMissionTaskButton(solarTab, "Deploy Panels", {PANELS ON. WAIT 10.}).
+    addMissionTaskButton(solarTab, "Retract Panels", {PANELS OFF. WAIT 10.}).
 
     //SSTO Category
     Local sstoCategory IS addTab(taskCategories, "SSTO").
     Local sstoOptions IS addTabWidget(sstoCategory, TRUE).
 
     Local sstoTab IS addTab(sstoOptions, "Launch", TRUE).
-    addMissionTaskButton(overviewTab, sstoTab, "SSTO Launch", sstoLaunch@).
+    addMissionTaskButton(sstoTab, "SSTO Launch", sstoLaunch@).
 
     //Rendevous Category
     Local rendevousCategory IS addTab(taskCategories, "Rendevous", FALSE).
     Local rendevousOptions IS addTabWidget(rendevousCategory, TRUE).
 
     Local matchInclinationTab IS addTab(rendevousOptions, "Match Inclination", TRUE).
-    matchInclinationPanel(overviewTab, matchInclinationTab).
+    matchInclinationPanel(matchInclinationTab).
 
     Local rendevousTab IS addTab(rendevousOptions, "Rendevous", TRUE).
-    rendevousPanel(overviewTab, rendevousTab).
+    rendevousPanel(rendevousTab).
 
     //Docking Category
     Local dockingCategory IS addTab(taskCategories, "Docking", FALSE).
     Local dockingOptions IS addTabWidget(dockingCategory, TRUE).
 
     Local dockOnPortTab IS addTab(dockingOptions, "Dock", TRUE).
-    dockOnPortPanel(overviewTab, dockOnPortTab).
+    dockOnPortPanel(dockOnPortTab).
 
     //Test Category
     Local testCategory IS addTab(taskCategories, "Test").
-    addMissionTaskButton(overviewTab, testCategory, "Test Task 1", {Print "Performing Test Task 1".}).
-    addMissionTaskButton(overviewTab, testCategory, "Test Task 2", {Print "Performing Test Task 2".}).
+    addMissionTaskButton(testCategory, "Test Task 1", {Print "Performing Test Task 1".}).
+    addMissionTaskButton(testCategory, "Test Task 2", {Print "Performing Test Task 2".}).
 }
 
 function addMissionTaskButton {
-    parameter overviewTab.
     parameter taskTab.
     parameter taskName.
     parameter taskDelegate.
 
     LOCAL taskButton IS taskTab:ADDBUTTON(taskName).
     SET taskButton:ONCLICK TO {
-        addMissionTask(overviewTab, getTask(taskName, taskDelegate)).
+        addMissionTask(getTask(taskName, taskDelegate)).
         activateButton(taskButton).
     }.
 }
@@ -251,7 +244,6 @@ function rendevousTask {
 }
 
 function rendevousPanel {
-    parameter overviewTab.
     parameter panel.
 
     LOCAL label IS panel:ADDLABEL("Rendevous").
@@ -265,7 +257,7 @@ function rendevousPanel {
 
     Local rendevousButton IS panel:ADDBUTTON("Rendevous").
     SET rendevousButton:ONCLICK TO {
-        addMissionTask(overviewTab, rendevousTask(popup:VALUE)).
+        addMissionTask(rendevousTask(popup:VALUE)).
         activateButton(rendevousButton).
     }.
 }
@@ -277,7 +269,6 @@ function matchInclinationTask {
 }
 
 function matchInclinationPanel {
-    parameter overviewTab.
     parameter panel.
 
     LOCAL label IS panel:ADDLABEL("Match Inclination").
@@ -290,7 +281,7 @@ function matchInclinationPanel {
 
     Local matchInclinationButton IS panel:ADDBUTTON("Match Inclination").
     SET matchInclinationButton:ONCLICK TO {
-        addMissionTask(overviewTab, matchInclinationTask(popup:VALUE)).
+        addMissionTask(matchInclinationTask(popup:VALUE)).
         activateButton(matchInclinationButton).
     }.
 }
@@ -306,7 +297,6 @@ function dockOnPortTask {
 }
 
 function dockOnPortPanel {
-    parameter overviewTab.
     parameter panel.
     LOCAL dockingPorts IS getDockablePorts(SHIP).
 
@@ -328,7 +318,7 @@ function dockOnPortPanel {
 
     Local dockButton IS panel:ADDBUTTON("Dock").
     SET dockButton:ONCLICK TO {
-        addMissionTask(overviewTab, dockOnPortTask( sourcePortPopup:VALUE, targetPopup:VALUE)).
+        addMissionTask(dockOnPortTask( sourcePortPopup:VALUE, targetPopup:VALUE)).
         activateButton(dockButton).
     }.
 }
