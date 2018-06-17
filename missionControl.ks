@@ -159,12 +159,32 @@ function addMissionTaskButtons {
 
     Local variableBox IS addTaskTab:AddStack().
 
+    //Ship Systems Category
+    Local shipCategory IS addTab(taskCategories, "Ship Systems").
+    Local shipOptions IS addTabWidget(shipCategory, TRUE).
+
+    Local gearTab IS addTab(shipOptions, "Gear", TRUE).
+    addMissionTaskButton(overviewTab, gearTab, "Lower Gear", {GEAR ON. WAIT 5.}).
+    addMissionTaskButton(overviewTab, gearTab, "Raise Gear", {GEAR OFF. WAIT 5.}).
+
+    Local brakeTab IS addTab(shipOptions, "Brakes", TRUE).
+    addMissionTaskButton(overviewTab, brakeTab, "Brakes On", {BRAKES ON. WAIT 1.}).
+    addMissionTaskButton(overviewTab, brakeTab, "Brakes Off", {BRAKES OFF. WAIT 1.}).
+
+    Local lightTab IS addTab(shipOptions, "Lights", TRUE).
+    addMissionTaskButton(overviewTab, lightTab, "Lights On", {LIGHTS ON. WAIT 1.}).
+    addMissionTaskButton(overviewTab, lightTab, "Lights Off", {LIGHTS OFF. WAIT 1.}).
+
+    Local solarTab IS addTab(shipOptions, "Solar Panels", TRUE).
+    addMissionTaskButton(overviewTab, solarTab, "Deploy Panels", {PANELS ON. WAIT 10.}).
+    addMissionTaskButton(overviewTab, solarTab, "Retract Panels", {PANELS OFF. WAIT 10.}).
+
     //SSTO Category
     Local sstoCategory IS addTab(taskCategories, "SSTO").
     Local sstoOptions IS addTabWidget(sstoCategory, TRUE).
 
     Local sstoTab IS addTab(sstoOptions, "Launch", TRUE).
-    sstoPanel(overviewTab, sstoTab).
+    addMissionTaskButton(overviewTab, sstoTab, "SSTO Launch", sstoLaunch@).
 
     //Rendevous Category
     Local rendevousCategory IS addTab(taskCategories, "Rendevous", FALSE).
@@ -185,17 +205,20 @@ function addMissionTaskButtons {
 
     //Test Category
     Local testCategory IS addTab(taskCategories, "Test").
+    addMissionTaskButton(overviewTab, testCategory, "Test Task 1", {Print "Performing Test Task 1".}).
+    addMissionTaskButton(overviewTab, testCategory, "Test Task 2", {Print "Performing Test Task 2".}).
+}
 
-    Local testTaskButton IS testCategory:ADDBUTTON("Test Task 1").
-    SET testTaskButton:ONCLICK TO {
-        addMissionTask(overviewTab, testTask("Test Mission 1")).
-        activateButton(testTaskButton).
-    }.
+function addMissionTaskButton {
+    parameter overviewTab.
+    parameter taskTab.
+    parameter taskName.
+    parameter taskDelegate.
 
-    Local testTaskButton2 IS testCategory:ADDBUTTON("Test Task 2").
-    SET testTaskButton2:ONCLICK TO {
-        addMissionTask(overviewTab, testTask("Test Mission 2")).
-        activateButton(testTaskButton2).
+    LOCAL taskButton IS taskTab:ADDBUTTON(taskName).
+    SET taskButton:ONCLICK TO {
+        addMissionTask(overviewTab, getTask(taskName, taskDelegate)).
+        activateButton(taskButton).
     }.
 }
 
@@ -220,31 +243,7 @@ function executeMission {
     }
 }
 
-//***** Below are tasks that can be executed as part of a mission *****//
-function testTask {
-    parameter name.
-
-    LOCAL delegate IS {Print "I'm performing my task!".  Print "My Name is: " + name.}.
-
-    return getTask(name, delegate).
-}
-
-function sstoTask {
-    Local delegate IS sstoLaunch@.
-    return getTask("SSTO Launch", delegate).
-}
-
-function sstoPanel {
-    parameter overviewTab.
-    parameter panel.
-
-    Local sstoButton IS panel:ADDBUTTON("SSTO LAUNCH").
-    SET sstoButton:ONCLICK TO {
-        addMissionTask(overviewTab, sstoTask()).
-        activateButton(sstoButton).
-    }.
-}
-
+//***** Below are more complicated tasks that can be executed as part of a mission *****//
 function rendevousTask {
     parameter targetVessel.
     Local delegate IS rendevous@:bind(targetVessel).
