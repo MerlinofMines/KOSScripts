@@ -197,6 +197,11 @@ function addMissionTaskButtons {
     Local dockOnPortTab IS addTab(dockingOptions, "Dock", TRUE).
     dockOnPortPanel(dockOnPortTab).
 
+    //Orbital Maneuver Category
+    Local orbitCategory IS addTab(taskCategories, "Orbit", FALSE).
+    Local orbitOptions IS addTabWidget(orbitCategory, TRUE).
+
+
     //Test Category
     Local testCategory IS addTab(taskCategories, "Test").
     addMissionTaskButton(testCategory, "Test Task 1", {Print "Performing Test Task 1".}).
@@ -265,19 +270,41 @@ function rendevousPanel {
 function matchInclinationTask {
     parameter targetVessel.
     Local delegate IS matchInclination@:bind(targetVessel).
-    return getTask("Match Inclination with " + targetVessel:SHIPNAME, delegate).
+    return getTask("Match Inclination with " + targetVessel:NAME, delegate).
 }
 
 function matchInclinationPanel {
     parameter panel.
 
     LOCAL label IS panel:ADDLABEL("Match Inclination").
+
+    Local choices IS panel:ADDHLAYOUT().
+
+    Local targetChoice IS choices:ADDRADIOBUTTON("Targets", TRUE).
+    Local bodyChoice IS choices:ADDRADIOBUTTON("Bodies", FALSE).
+
     LOCAL popup is panel:addPopupMenu().
     LIST Targets IN targets.
+    LIST bodies in bodies.
 
     for option IN targets {
         popup:addoption(option).
     }
+
+    SET targetChoice:ONCLICK TO {
+        popup:CLEAR.
+        for option IN targets {
+            popup:addoption(option).
+        }
+    }.
+
+    SET bodyChoice:ONCLICK TO {
+        popup:CLEAR.
+        for bodyOption in bodies {
+            popup:addoption(bodyOption).
+        }
+        set popup:value to body.
+    }.
 
     Local matchInclinationButton IS panel:ADDBUTTON("Match Inclination").
     SET matchInclinationButton:ONCLICK TO {

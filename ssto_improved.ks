@@ -1,5 +1,7 @@
 RUNONCEPATH("0:/maneuver.ks").
 RUNONCEPATH("0:/output.ks").
+RUNONCEPATH("0:/utility.ks").
+RUNONCEPATH("0:/draw.ks").
 CLEARSCREEN.
 
 Print "Starting Launch Sequence.".
@@ -62,47 +64,22 @@ shortInfo("Raising Gear.").
 GEAR OFF.
 
 SET currentPrograde TO progradeDegrees().
+SET currentTime TO TIME:SECONDS.
 SET currentPitch to SHIP:CONTROL:PITCH.
 SET currentVelocity TO SHIP:AIRSPEED.
 SET refreshInterval to 0.05. // 50ms.
-SET pitchChange to 0.02.
-
+SET pitchChange to 1.
+SET desiredPitch TO getDirection().
+SET desiredAcceleration TO 1.0.
 WAIT refreshInterval.
 
-UNTIL ALTITUDE > 20000 {
-    LOCAL newVelocity IS SHIP:AIRSPEED.
-    LOCAL acceleration IS newVelocity - currentVelocity.
-    SET currentVelocity TO newVelocity.
-    SET currentPitch to SHIP:CONTROL:PITCH.
+SET SHIP:CONTROL:NEUTRALIZE to True.
 
+LOCK STEERING TO getDesiredHeading().
 
-    if (acceleration > refreshInterval) {
-        SET newPitch TO SHIP:CONTROL:PITCH + 0.002.
-    } else {
-        SET newPITCH TO SHIP:CONTROL:PITCH - 0.002.
-    }
+WAIT UNTIL SHIP:ALTITUDE > 20000.
 
-    SET currentHeading TO SHIP:FACING:PITCH.
-    SET currentRoll TO SHIP:FACING:TOPVECTOR:Y.
-
-    SET rollChange TO 0.
-    if (currentHeading < 180 AND currentRoll < 0) {
-        SET rollChange TO -0.1 * (currentHeading / 10).
-    } else if (currentHeading < 180 AND currentRoll > 0) {
-        SET rollChange TO 0.025 * (currentHeading / 10).
-    } else if (currentHeading > 180 AND currentRoll < 0) {
-        SET rollChange TO -0.025 * ((360 - currentHeading) / 10).
-    } else if (currentHeading > 180 AND currentRoll > 0) {
-        SET rollChange TO 0.1 * ((360 - currentHeading) / 10).
-    }
-
-    SET SHIP:CONTROL:PITCH TO newPitch.
-    SET currentPitch To newPitch.
-    SET SHIP:CONTROL:ROLL TO rollChange.
-
-    WAIT refreshInterval.
-}
-
+UNLOCK STEERING.
 SET SHIP:CONTROL:NEUTRALIZE to True.
 
 shortInfo("Engaging SAS").
@@ -162,6 +139,52 @@ SET AG4 TO True.
 
 info("Launch Complete", 100).
 
+function getDesiredHeading {
+    CLEARVECDRAWS().
+    CLEARSCREEN.
+
+    LOCAL idealPitch IS getDirection().
+
+    PRINT "Ideal Pitch: " + idealPitch.
+
+    LOCAL newTime IS TIME:SECONDS.
+    LOCAL timeDelta IS newTime - currentTime.
+    LOCAL newVelocity IS SHIP:AIRSPEED.
+    LOCAL acceleration IS (newVelocity - currentVelocity)/timeDelta.
+
+    //Global State
+    SET currentTime TO newTime.
+    SET currentVelocity TO newVelocity.
+
+    LOCAL currentPitch IS navball_direction(SHIP):PITCH.
+
+    PRINT "Current Pitch: " + currentPitch.
+
+    if(abs(currentPitch - desiredPitch) > pitchChange) {
+        PRINT "CASE 1".
+    } else if (acceleration < desiredAcceleration) {
+        PRINT "CASE 2".
+        SET desiredPitch TO desiredPitch - pitchChange.
+
+    } else if (currentPitch < (idealPitch - pitchChange) AND acceleration > 3*desiredAcceleration) {
+        PRINT "CASE 3".
+        SET desiredPitch TO desiredPitch + pitchChange.
+    } else if (currentPitch > (idealPitch + pitchChange)) {
+        SET desiredPitch TO desiredPitch - pitchChange.
+        PRINT "CASE 4".
+    } else {
+        PRINT "CASE 5".
+    }
+
+    Print "Desired Pitch: " + desiredPitch.
+
+    LOCAL desiredHeading IS HEADING(90, desiredPitch).
+
+    drawDirection(desiredHeading, "Desired Heading").
+    drawDirection(SHIP:FACING, "Current Heading").
+
+    return desiredHeading.
+}
 
 function getDirection {
     if (ALTITUDE < 5000) {
