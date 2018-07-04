@@ -3,7 +3,7 @@ RUNONCEPATH("0:/input.ks").
 RUNONCEPATH("0:/ui/tab_widget.ks").
 RUNONCEPATH("0:/rendevous.ks").
 RUNONCEPATH("0:/docking.ks").
-RUNONCEPATH("0:/ssto.ks").
+RUNONCEPATH("0:/ssto_improved.ks").
 
 //TODO: Should these be global?  Doesn't really make sense to have more than 1 mission widget per CPU..this is probably ok.
 SET MISSION_TASK_LIST TO list().

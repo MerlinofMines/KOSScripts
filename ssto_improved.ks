@@ -2,142 +2,145 @@ RUNONCEPATH("0:/maneuver.ks").
 RUNONCEPATH("0:/output.ks").
 RUNONCEPATH("0:/utility.ks").
 RUNONCEPATH("0:/draw.ks").
-CLEARSCREEN.
 
-Print "Starting Launch Sequence.".
-SET orbitHeight to 75000.
-Print "Orbital Height will be " + orbitHeight.
+function sstoLaunch {
+    CLEARSCREEN.
 
-Print "Waiting for throttle to be set at 0.".
-SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+    Print "Starting Launch Sequence.".
+    SET orbitHeight to 75000.
+    Print "Orbital Height will be " + orbitHeight.
 
-WAIT UNTIL THROTTLE = 0.0.
+    Print "Waiting for throttle to be set at 0.".
+    SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 
-SET countdown TO 3.
+    WAIT UNTIL THROTTLE = 0.0.
 
-info("Launch is a go.").
+    SET countdown TO 3.
 
-shortInfo("Launching in ", countdown + 1).
-UNTIL countdown = 0 {
-  shortInfo(countdown, 1).
-  SET countdown TO countdown - 1.
-  WAIT 1.
-}
+    info("Launch is a go.").
 
-shortInfo("Activating Rapiers.").
-SET AG1 TO TRUE.
-
-WAIT 1.
-
-shortInfo("Throttling Up to 100%").
-LOCK THROTTLE TO 1.0.
-
-//Print "Engaging SAS".
-//SAS ON.
-
-UNTIL SHIP:GROUNDSPEED > 160 OR ALT:RADAR > 5 {
-//    SET facing TO SHIP:FACING.
-    SET pitch to SHIP:FACING:PITCH - 0.2. // runway is a little off from east it seems.
-//    Print "Facing: " + facing.
-//    Print "Pitch: " + facing:PITCH.
-//    Print "Heading: " + heading.
-
-    SET SHIP:CONTROL:PITCH TO 0.5.    
-
-    if pitch < 10 {
-//        Print "Turn Left.".
-        SET steer TO (pitch / 100).
-    } else if pitch > 350 {
-        SET steer TO ((360 - pitch) / -100). 
-//        Print "Turn Right.".
-    } else {
-//        Print "Way off! Abort.".
-    }
-//    Print "Steer: " + steer.
-    SET SHIP:CONTROL:WHEELSTEER TO steer.
-}
-
-
-WAIT UNTIL ALT:RADAR > 5.
-
-shortInfo("Raising Gear.").
-GEAR OFF.
-
-SET currentPrograde TO progradeDegrees().
-SET currentTime TO TIME:SECONDS.
-SET currentPitch to SHIP:CONTROL:PITCH.
-SET currentVelocity TO SHIP:AIRSPEED.
-SET refreshInterval to 0.05. // 50ms.
-SET pitchChange to 1.
-SET desiredPitch TO getDirection().
-SET desiredAcceleration TO 1.0.
-WAIT refreshInterval.
-
-SET SHIP:CONTROL:NEUTRALIZE to True.
-
-LOCK STEERING TO getDesiredHeading().
-
-WAIT UNTIL SHIP:ALTITUDE > 20000.
-
-UNLOCK STEERING.
-SET SHIP:CONTROL:NEUTRALIZE to True.
-
-shortInfo("Engaging SAS").
-SAS ON.
-
-shortInfo("Igniting Nuclear Engine").
-SET AG2 TO TRUE.    
-
-SET switchMode TO FALSE.
-UNTIL APOAPSIS > 69000 {
-
-    IF (ALTITUDE > 26000 AND switchMode = FALSE) {
-        shortInfo("Switching Rapiers Mode.").
-        SET AG3 TO TRUE.
-        SET switchMode TO TRUE.
+    shortInfo("Launching in ", countdown + 1).
+    UNTIL countdown = 0 {
+      shortInfo(countdown, 1).
+      SET countdown TO countdown - 1.
+      WAIT 1.
     }
 
-}
+    shortInfo("Activating Rapiers.").
+    SET AG1 TO TRUE.
 
-shortInfo("APOAPSIS at " + SHIP:ORBIT:APOAPSIS).
-shortInfo("Turning off Rapiers.").
-SET AG1 TO FALSE.
-SET SASMODE TO "PROGRADE".
+    WAIT 1.
 
-WAIT UNTIL ETA:APOAPSIS < 12.
-shortInfo("Aproaching Apoapsis, Re-igniting Rapiers.").
-SET AG1 TO TRUE.
+    shortInfo("Throttling Up to 100%").
+    LOCK THROTTLE TO 1.0.
 
-SET circularized TO FALSE.
-SET orbitEccentricity TO SHIP:ORBIT:ECCENTRICITY.
+    //Print "Engaging SAS".
+    //SAS ON.
 
-UNTIL (SHIP:ORBIT:PERIAPSIS > 72000 AND circularized) {
-    //If our current eccentricity is more than our previous then we're as circular as we're gonna get.
-    if(SHIP:ORBIT:ECCENTRICITY > orbitEccentricity) {
-        SET circularized TO TRUE.
+    UNTIL SHIP:GROUNDSPEED > 160 OR ALT:RADAR > 5 {
+    //    SET facing TO SHIP:FACING.
+        SET pitch to SHIP:FACING:PITCH - 0.2. // runway is a little off from east it seems.
+    //    Print "Facing: " + facing.
+    //    Print "Pitch: " + facing:PITCH.
+    //    Print "Heading: " + heading.
+
+        SET SHIP:CONTROL:PITCH TO 0.5.
+
+        if pitch < 10 {
+    //        Print "Turn Left.".
+            SET steer TO (pitch / 100).
+        } else if pitch > 350 {
+            SET steer TO ((360 - pitch) / -100).
+    //        Print "Turn Right.".
+        } else {
+    //        Print "Way off! Abort.".
+        }
+    //    Print "Steer: " + steer.
+        SET SHIP:CONTROL:WHEELSTEER TO steer.
     }
 
+
+    WAIT UNTIL ALT:RADAR > 5.
+
+    shortInfo("Raising Gear.").
+    GEAR OFF.
+
+    SET currentPrograde TO progradeDegrees().
+    SET currentTime TO TIME:SECONDS.
+    SET currentPitch to SHIP:CONTROL:PITCH.
+    SET currentVelocity TO SHIP:AIRSPEED.
+    SET refreshInterval to 0.05. // 50ms.
+    SET pitchChange to 1.
+    SET desiredPitch TO getDirection().
+    SET desiredAcceleration TO 1.0.
+    WAIT refreshInterval.
+
+    LOCK STEERING TO getDesiredHeading().
+
+    SET SHIP:CONTROL:NEUTRALIZE to True.
+
+    WAIT UNTIL SHIP:ALTITUDE > 20000.
+
+    UNLOCK STEERING.
+    SET SHIP:CONTROL:NEUTRALIZE to True.
+
+    shortInfo("Engaging SAS").
+    SAS ON.
+
+    shortInfo("Igniting Nuclear Engine").
+    SET AG2 TO TRUE.
+
+    SET switchMode TO FALSE.
+    UNTIL APOAPSIS > 69000 {
+
+        IF (ALTITUDE > 26000 AND switchMode = FALSE) {
+            shortInfo("Switching Rapiers Mode.").
+            SET AG3 TO TRUE.
+            SET switchMode TO TRUE.
+        }
+
+    }
+
+    shortInfo("APOAPSIS at " + SHIP:ORBIT:APOAPSIS).
+    shortInfo("Turning off Rapiers.").
+    SET AG1 TO FALSE.
+    SET SASMODE TO "PROGRADE".
+
+    WAIT UNTIL ETA:APOAPSIS < 12.
+    shortInfo("Aproaching Apoapsis, Re-igniting Rapiers.").
+    SET AG1 TO TRUE.
+
+    SET circularized TO FALSE.
     SET orbitEccentricity TO SHIP:ORBIT:ECCENTRICITY.
-    WAIT 0.01.
+
+    UNTIL (SHIP:ORBIT:PERIAPSIS > 72000 AND circularized) {
+        //If our current eccentricity is more than our previous then we're as circular as we're gonna get.
+        if(SHIP:ORBIT:ECCENTRICITY > orbitEccentricity) {
+            SET circularized TO TRUE.
+        }
+
+        SET orbitEccentricity TO SHIP:ORBIT:ECCENTRICITY.
+        WAIT 0.01.
+    }
+
+    SET AG1 TO FALSE.
+    SET AG2 TO FALSE.
+    info("Orbital Insertion Complete.", 100).
+
+    LOCK THROTTLE TO 0.0.
+    WAIT UNTIL THROTTLE = 0.0.
+
+    UNLOCK STEERING.
+    UNLOCK THROTTLE.
+    wait 1.
+
+    SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+
+    shortInfo("Engaging Solar Panels").
+    SET AG4 TO True.
+
+    info("Launch Complete", 100).
 }
-
-SET AG1 TO FALSE.
-SET AG2 TO FALSE.
-info("Orbital Insertion Complete.", 100).
-
-LOCK THROTTLE TO 0.0.
-WAIT UNTIL THROTTLE = 0.0.
-
-UNLOCK STEERING.
-UNLOCK THROTTLE.
-wait 1.
-
-SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
-
-shortInfo("Engaging Solar Panels").
-SET AG4 TO True.
-
-info("Launch Complete", 100).
 
 function getDesiredHeading {
     CLEARVECDRAWS().
