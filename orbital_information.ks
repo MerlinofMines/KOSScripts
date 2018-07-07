@@ -6,10 +6,6 @@ function meanAnomalyAt {
 
 	Local meanAnomaly IS meanAnomalyFromTrueAnomaly(trueAnomaly, sourceVessel:Orbit:Eccentricity).
 
-	if (positionVectorAt(sourceVessel, orbitTime) * VelocityAt(sourceVessel, pointInTime):ORBIT < 0) {
-		SET meanAnomaly TO 360 - meanAnomaly.
-	}
-
 	return meanAnomaly.
 }
 
@@ -20,10 +16,6 @@ function eccentricAnomalyAt {
 	Local trueAnomaly IS trueAnomalyAt(orbitTime, sourceVessel).
 
 	Local eccentricAnomaly IS eccentricAnomalyFromTrueAnomaly(trueAnomaly, sourceVessel:Orbit:Eccentricity).
-
-	if (positionVectorAt(sourceVessel, orbitTime) * VelocityAt(sourceVessel, pointInTime):ORBIT < 0) {
-		SET eccentricAnomaly TO 360 - eccentricAnomaly.
-	}
 
 	return eccentricAnomaly.
 }
@@ -68,13 +60,21 @@ function eccentricAnomalyFromTrueAnomaly {
 
 //	PRINT "cosE: " + cosE.
 
-	return arccos(cosE).
+	LOCAL eccentricAnomaly IS arccos(cosE).
+
+	if(trueAnomaly > 180 AND eccentricAnomaly < 180) {
+		SET eccentricAnomaly TO 360 - eccentricAnomaly.
+	}
+
+	return eccentricAnomaly.
 }
 
 function meanAnomalyFromEccentricAnomaly {
 	parameter eccentricAnomaly.
 	parameter eccentricity.
-	return eccentricAnomaly - eccentricity * sin(eccentricAnomaly).
+	LOCAL meanAnomaly IS eccentricAnomaly - eccentricity * abs(sin(eccentricAnomaly)) * CONSTANT:RADTODEG.
+
+	return meanAnomaly.
 }
 
 function meanAnomalyFromTrueAnomaly {
@@ -82,7 +82,9 @@ function meanAnomalyFromTrueAnomaly {
 	parameter eccentricity.
 
 	LOCAL eccentricAnomaly IS eccentricAnomalyFromTrueAnomaly(trueAnomaly, eccentricity).
-	return meanAnomalyFromEccentricAnomaly(eccentricAnomaly, eccentricity).
+	LOCAL meanAnomaly IS meanAnomalyFromEccentricAnomaly(eccentricAnomaly, eccentricity).
+
+	return meanAnomaly.
 }
 
 //TODO: Change method signature, put sourceVessel as 2nd param, default to SHIP.
@@ -157,6 +159,7 @@ function timeToApoapsis {
 //Returns the time in seconds until the source vessel goes through the given revolutions
 //through it's orbit.  This parameter can be a decimal, and can be used to get the next time
 //to periapsis (revolutions = 1), next Apoapsis (revolutions = 0.5), etc.
+//Derivation is taken by calculating mean anomaly from eccentric anomaly and then dividing by mean motion.
 function timeToOrbitRevolutionsFromLastPeriapsis {
 	parameter revolutions.
 	parameter sourceVessel IS SHIP.
@@ -164,24 +167,23 @@ function timeToOrbitRevolutionsFromLastPeriapsis {
 	LOCAL a iS sourceVessel:ORBIT:SEMIMAJORAXIS.
 	LOCAL mu IS sourceVessel:ORBIT:BODY:MU.
 	LOCAL e IS sourceVessel:ORBIT:ECCENTRICITY.
-	LOCAL v is sourceVessel:ORBIT:TRUEANOMALY.
-	LOCAL tau IS eccentricAnomalyFromTrueAnomaly(v, e).
 	LOCAL period IS sourceVessel:ORBIT:PERIOD.
 
-	LOCAL t IS sqrt(a*a*a/mu)*(CONSTANT:DegToRad*tau - e*sin(tau)).
+	LOCAL v is sourceVessel:ORBIT:TRUEANOMALY.
+	LOCAL tau IS eccentricAnomalyFromTrueAnomaly(v, e).
 
-	LOCAL timeSinceLastPeriapsis IS (period - t).
+//mean anomaly divided by mean motion gives you a reference (t - T) of where we are at in our orbit.
+	//see https://en.wikipedia.org/wiki/Mean_anomaly#Formula.
+	//Note that for the purposes this calculation we need meanAnomaly in Radians instead of degrees.
+	LOCAL timeSinceLastPeriapsis IS sqrt(a*a*a/mu)*(CONSTANT:DegToRad*tau - e*sin(tau)).
 
 //	PRINT "t is: " + t.
-//	PRINT "True Anomaly: " + v.
+//	"Revolutions True Anomaly: " + v.
+//	PRINT "Eccentric Anomaly: " + tau.
 //	PRINT "Period: " + period.
 //	PRINT "Revolutions: " + revolutions.
 //	PRINT "timeSinceLastPeriapsis Before negative: " + timeSinceLastPeriapsis.
 
-	//If we're on our way towards periapsis, then we our eccentric anomaly is not quite right. Compensate.
-	IF (v < 180) {
-		SET timeSinceLastPeriapsis TO period - timeSinceLastPeriapsis.
-	}
 
 	return revolutions*period - timeSinceLastPeriapsis.	
 }
