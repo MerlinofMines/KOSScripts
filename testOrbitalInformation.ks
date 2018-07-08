@@ -1,5 +1,19 @@
 RUNONCEPATH("0:/output.ks").
-RUNONCEPATH("0:/orbital_information").
+RUNONCEPATH("0:/orbital_information.ks").
+RUNONCEPATH("0:/rendevous.ks").
+
+UNTIL TRUE {
+    CLEARSCREEN.
+    CLEARVECDRAWS().
+
+    LOCAL myTarget IS Vessel("Kerbin Science Orbiter").
+//    LOCAL myTarget IS Vessel("Merlin Mark I - Crew Configuration").
+    LOCAL timeToAscendingNode IS timeToRelativeAscendingNode(myTarget,SHIP).
+
+    prettyPrintTime(timeToAscendingNode,": ").
+    WAIT 0.01.
+}
+
 
 UNTIL FALSE {
     CLEARSCREEN.

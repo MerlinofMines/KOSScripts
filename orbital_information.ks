@@ -25,27 +25,43 @@ function trueAnomalyAt {
 	parameter sourceVessel IS SHIP.
 
 	LOCAL orbitalPosition IS positionVectorAt(sourceVessel, orbitTime).
-	LOCAL orbitalVelocity IS VelocityAt(sourceVessel,orbitTime):ORBIT.
 
-	return trueAnomalyFromStateVectors(orbitalPosition, orbitalVelocity, sourceVessel).
+	return trueAnomalyFromStateVectors(orbitalPosition, sourceVessel).
 }
 
 //See this equation: https://en.wikipedia.org/wiki/True_anomaly#From_state_vectors
 function trueAnomalyFromStateVectors {
 	parameter orbitalPosition.
-	parameter orbitalVelocity.
 	parameter sourceVessel IS SHIP.
 
 	LOCAL eccentricityVector IS getEccentricityVector(sourceVessel).
+
+	Local shipOrbitalPosition Is positionVectorAt(sourceVessel, TIME:SECONDS).
+	Local shipOrbitalVelocity Is sourceVessel:ORBIT:VELOCITY:ORBIT.
+	Local shipOrbitalMomentum Is VCRS(shipOrbitalPosition, shipOrbitalVelocity):NORMALIZED*(sourceVessel:ORBIT:APOAPSIS+sourceVessel:ORBIT:BODY:RADIUS).
 
 //	Print "VDOT: " + VDOT(eccentricityVector, orbitalPosition).
 //	Print "Bottom: " + eccentricityVector:MAG * orbitalPosition:MAG.
 //	Print "Before Arc Cos: " + VDOT(eccentricityVector, orbitalPosition) / (eccentricityVector:MAG * orbitalPosition:MAG).
 //	Print "Arc Cos: " + arccos(VDOT(eccentricityVector, orbitalPosition) / (eccentricityVector:MAG * orbitalPosition:MAG)).
 
-	LOCAL trueAnomaly IS arccos(VDOT(eccentricityVector, orbitalPosition) / (eccentricityVector:MAG * orbitalPosition:MAG)).
+	//TODO: Testing indicates that VANG between eccentricity vector and orbital position is exactly what we need here. No need to re-invent the wheel.
+//	LOCAL trueAnomaly IS arccos(VDOT(eccentricityVector, orbitalPosition) / (eccentricityVector:MAG * orbitalPosition:MAG)).
+	LOCAl trueAnomaly IS VANG(eccentricityVector, orbitalPosition).
 
-	if (orbitalPosition * orbitalVelocity < 0) {
+//	PRINT "True Anamoly1: " + trueAnomaly.
+//	PRINT "True Anomaly2: " + trueAnomaly2.
+//	PRINT "Diff: " + abs(trueAnomaly - trueAnomaly2).
+
+//	Print "Orbital Position: " + orbitalPosition.
+//	Print "Orbital Velocity: " + orbitalVelocity.
+
+	LOCAL eccentricityCross IS VCRS(orbitalPosition,eccentricityVector):NORMALIZED*(sourceVessel:ORBIT:APOAPSIS+sourceVessel:ORBIT:BODY:RADIUS).
+//	drawVector(eccentricityCross, "EccentricityCross",sourceVessel:ORBIT:BODY:POSITION).
+//	drawVector(shipOrbitalMomentum, "Orbital Momentum", sourceVessel:ORBIT:BODY:POSITION).
+
+	//TODO: If orbitalPosition and orbitalVelocity are perpendicular this becomes inconsistent.
+	if (VANG(eccentricityCross, shipOrbitalMomentum) < 90) {
 		SET trueAnomaly TO 360 - trueAnomaly.
 	}
 
