@@ -201,11 +201,13 @@ function addMissionTaskButtons {
     Local orbitCategory IS addTab(taskCategories, "Orbit", FALSE).
     Local orbitOptions IS addTabWidget(orbitCategory, TRUE).
 
+    LOCAL circularizeTab IS addTab(orbitOptions, "Circularize", TRUE).
+    circularizePanel(circularizeTab).
 
     //Test Category
-    Local testCategory IS addTab(taskCategories, "Test").
-    addMissionTaskButton(testCategory, "Test Task 1", {Print "Performing Test Task 1".}).
-    addMissionTaskButton(testCategory, "Test Task 2", {Print "Performing Test Task 2".}).
+//    Local testCategory IS addTab(taskCategories, "Test").
+//    addMissionTaskButton(testCategory, "Test Task 1", {Print "Performing Test Task 1".}).
+//    addMissionTaskButton(testCategory, "Test Task 2", {Print "Performing Test Task 2".}).
 }
 
 function addMissionTaskButton {
@@ -348,6 +350,23 @@ function dockOnPortPanel {
         addMissionTask(dockOnPortTask( sourcePortPopup:VALUE, targetPopup:VALUE)).
         activateButton(dockButton).
     }.
+}
+
+function circularizePanel {
+    parameter panel.
+
+    LOCAL circularizeButton IS panel:ADDBUTTON("Circularize").
+    SET circularizeButton:ONCLICK TO {
+        addMissionTask(circularizeAtApoapsisTask()).
+        activateButton(circularizeButton).
+    }.
+}
+
+function circularizeAtApoapsisTask {
+    LOCAL taskName IS "Circularize at Apoapsis".
+    LOCAL taskDelegate IS circularizeAtApoapsis@.
+
+    return getTask(taskName, taskDelegate).
 }
 
 function getTask {

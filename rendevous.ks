@@ -137,7 +137,7 @@ function circularizeAtApoapsis {
 
 	Add nd.
 
-	shortInfo("Executing Circulration Burn").
+	shortInfo("Executing Circularization Burn").
 	executeNextManeuver().
 
 	shortInfo("Circularization Burn Complete").

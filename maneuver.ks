@@ -62,6 +62,7 @@ function executeNextManeuver {
     SET start_time TO TIME:SECONDS + n:ETA - t.
 
     SAS ON.
+    WAIT 0.5.
     SET SASMODE TO "MANEUVER".
 
     // Point at the maneuver node.
