@@ -715,10 +715,6 @@ function getTimeToClosestApproachAt {
 		SET timeToClosestApproach TO timeToClosestApproach + sourceVessel:ORBIT:PERIOD.
 	}
 
-	//TODO: This calculation can be made much faster, as we should be able to calculate the "delta" in
-	//True anomaly per each orbit.  Since true anomaly Is a measure of rotation around a circle, it should be constant.
-	//Thus, we can extrapolate future true anomalies by calculating the true anomaly at closest approach and 1 orbit after closest approach.  After that, it's just a matter of continuing to add delta true anomaly until we are satisfied.
-
 	UNTIL (trueAnomalyAt(timeToClosestApproach, targetVessel) > 180
 	  AND trueAnomalyAt(timeToClosestApproach + sourceVessel:ORBIT:PERIOD, targetVessel) < 180) {
 		SET timeToClosestApproach TO timeToClosestApproach + sourceVessel:ORBIT:PERIOD.
