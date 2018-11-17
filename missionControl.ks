@@ -360,16 +360,25 @@ function dockOnPortPanel {
 function circularizePanel {
     parameter panel.
 
+    LOCAL label IS panel:ADDLABEL("Circularize Maintaining:").
+
+    Local choices IS panel:ADDHLAYOUT().
+
+    Local apoapsisChoice IS choices:ADDRADIOBUTTON("Apoapsis", TRUE).
+    Local progradeChoice IS choices:ADDRADIOBUTTON("Prograde", FALSE).
+
     LOCAL circularizeButton IS panel:ADDBUTTON("Circularize").
     SET circularizeButton:ONCLICK TO {
-        addMissionTask(circularizeAtApoapsisTask()).
+        addMissionTask(circularizeAtApoapsisTask(choices)).
         activateButton(circularizeButton).
     }.
 }
 
 function circularizeAtApoapsisTask {
-    LOCAL taskName IS "Circularize at Apoapsis".
-    LOCAL taskDelegate IS circularizeAtApoapsis@.
+    parameter maintainChoices.
+    LOCAL taskName IS "Circularize at Apoapsis, Maintaining " + maintainChoices:RADIOVALUE.
+    LOCAL maintainingApoapsis IS (maintainChoices:RADIOVALUE = "Apoapsis").
+    LOCAL taskDelegate IS circularizeAtApoapsis@:bind(SHIP):bind(maintainingApoapsis).
 
     return getTask(taskName, taskDelegate).
 }
