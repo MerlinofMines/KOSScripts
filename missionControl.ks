@@ -173,6 +173,10 @@ function addMissionTaskButtons {
     addMissionTaskButton(solarTab, "Deploy Panels", {PANELS ON. WAIT 10.}).
     addMissionTaskButton(solarTab, "Retract Panels", {PANELS OFF. WAIT 10.}).
 
+    Local chutesTab IS addTab(shipOptions, "Chutes", TRUE).
+    addMissionTaskButton(chutesTab, "Deploy Chutes", {CHUTES ON. WAIT 2.}).
+    addMissionTaskButton(chutesTab, "Deply Chutes Safely", {CHUTESSAFE ON. WAIT 2.}).
+
     //SSTO Category
     Local sstoCategory IS addTab(taskCategories, "SSTO").
     Local sstoOptions IS addTabWidget(sstoCategory, TRUE).
