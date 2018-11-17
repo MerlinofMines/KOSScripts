@@ -2,6 +2,7 @@ RUNONCEPATH("0:/output.ks").
 RUNONCEPATH("0:/draw.ks").
 RUNONCEPATH("0:/maneuver.ks").
 RUNONCEPATH("0:/orbital_information.ks").
+RUNONCEPATH("0:/orbital_maneuvers.ks").
 RUNONCEPATH("0:/input.ks").
 
 function rendevousWithPlan {
@@ -122,25 +123,6 @@ function suicideBurn {
 
     Print "Suicide burn complete.  Final Relative Velocity: " + relativeVelocity(targetVessel, sourceVessel):MAG.
     Print "Final Separation Distance: " + separationDistanceAtTime(sourceVessel, targetVessel, TIME:SECONDS).
-}
-
-function circularizeAtApoapsis {
-    parameter sourceVessel Is SHIP.
-
-	if(sourceVessel:ORBIT:ECCENTRICITY < 0.001) {
-		PRINT "Orbit is already circular. Skipping circularization burn.".
-		return.
-	}
-
-	shortInfo("Calculating Apoapsis Circularization Burn").
-	Local nd Is getApoapsisCircularizationBurnManeuverNode(sourceVessel).
-
-	Add nd.
-
-	shortInfo("Executing Circularization Burn").
-	executeNextManeuver().
-
-	shortInfo("Circularization Burn Complete").
 }
 
 //This function assumes that you have already performed an inclination change and the targetVessel Is in the
@@ -683,22 +665,6 @@ function timeofMaximumVectorAngleIterate {
 	Local revisedMaximumVectorAngleTime TO timeofMaximumVectorAngleIterate(positionVector, sourceVessel, newStartTime, stepNumber, newStepDuration, errorBound, iterationCount+1).
 
 	return revisedMaximumVectorAngleTime.
-}
-
-function getApoapsisCircularizationBurnManeuverNode {
-    parameter sourceVessel.
-
-    Local timeAtApoapsis Is timeAtNextApoapsis(sourceVessel).
-    Local mu Is sourceVessel:Orbit:Body:Mu.
-    Local vi Is VelocityAt(sourceVessel, timeAtApoapsis):Orbit:MAG.
-    Local r Is positionVectorAt(sourceVessel, timeAtApoapsis):MAG.
-
-    Local vf Is sqrt(mu /r).
-
-    // create node
-    Local deltav Is vf - vi.
-    Local nd Is node(timeAtApoapsis, 0, 0, deltav).
-    return nd.
 }
 
 function getTimeToClosestApproachAt {
