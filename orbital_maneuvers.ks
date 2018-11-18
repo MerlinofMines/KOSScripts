@@ -2,19 +2,6 @@ RUNONCEPATH("0:/output.ks").
 RUNONCEPATH("0:/maneuver.ks").
 RUNONCEPATH("0:/orbital_information.ks").
 
-function circularizeAtApoapsis {
-	parameter sourceVessel IS SHIP.
-	parameter maintainApoapsis IS TRUE.
-
-	if maintainApoapsis {
-		circularizeMaintainingApoapsis(sourceVessel).
-	} else {
-		circularizeMaintainingPrograde(sourceVessel).
-	}
-}
-
-//TODO: FIX ME.  This should replace above method, and above method should be updated to take in a flag
-//which should be used to determine how to perform the circularization maenuever.
 function circularizeMaintainingApoapsis {
 	parameter sourceVessel IS SHIP.
 
@@ -42,15 +29,19 @@ function circularizeMaintainingApoapsis {
 //and so a steady state can be achieved by controlling the thrust to ensure that we reach apoapsis at the same time that
 //our orbit is circularized.
 
-//Input to this method is a List of engines.  The algorithm will attempt to use
-//The engines and use the second and first in combination if/when it is determined
-//that both are needed to circularize the orbit, etc.  If the input list is empty then the algoithm will simply
-//use the
+//Input to this method is two Lists of engines, primary and (optional) secondary.  The algorithm will attempt to use
+//The primary engines and use the secondary and primary in combination if/when it is determined
+//that both are needed to circularize the orbit, etc.
 
 //It's useful for things like circularization during orbital ascent to ensure that your final orbit is circularized correctly,
 //especially if you know that you'll need an additional "burn" to reach orbital velocity.
+
+//Important: This method will manipulate the input engines (activating if necessary).  The state of the engines
+//after calling this method may, and could likely be, different than when before the method was invoked.
 function circularizeMaintainingPrograde {
-	parameter sourceVessel IS SHIP.
+	parameter primaryEngineList.
+	parameter secondaryEngineList IS list().
+
 	PRINT "Circularizing Maintaing Prograde".
 }
 
