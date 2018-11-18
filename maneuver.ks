@@ -118,19 +118,60 @@ function calculateHalfBurnDuration {
 function calculateBurnDuration {
     parameter deltaV.
 
-    // In the pursuit of a1...
-    // What's our effective ISP?
-    SET eIsp TO 0.
-    SET eThrust to 0.
-
     LIST engines IN my_engines.
-    FOR eng IN my_engines {
 
-        if(eng:IGNITION) {        
-            SET eIsp TO eIsp + eng:maxthrust / maxthrust * eng:isp.
-            Set eThrust To eThrust + eng:AVAILABLETHRUST.
+    LOCAL eIsp IS calculateISPForEngines(my_engines).
+    LOCAL eThrust IS calculateAvailableThrustForEngines(my_engines).
+
+    return calculateBurnDurationFromEngineThrust(eIsp, eThrust, deltaV).
+}
+
+function calculateISPForEngines {
+    parameter engineList IS engines.
+    LOCAL eIsp IS 0.
+
+    FOR eng IN engineList {
+        IF (eng:IGNITION) {
+            SET eIsp TO eIsp + eng:maxthrust / SHIP:MAXTHRUST * eng:isp.
+        } ELSE {
+            PRINT "Warning, " + eng:name + " is not active, it's ISP cannot be calculated.".
         }
     }
+
+    return eIsp.
+}
+
+function calculateMaxThrustForEngines {
+    parameter engineList IS engines.
+    LOCAL eThrust IS 0.
+
+    FOR eng IN engineList {
+        IF (eng:IGNITION) {
+            Set eThrust To eThrust + eng:MAXTHRUST.
+        } ELSE {
+            PRINT "Warning, " + eng:name + " is not active, it's max thrust cannot be calculated.".
+        }
+    }
+    return eThrust.
+}
+
+function calculateAvailableThrustForEngines {
+    parameter engineList IS engines.
+    LOCAL eThrust IS 0.
+
+    FOR eng IN engineList {
+        IF (eng:IGNITION) {
+            SET eThrust TO eThrust + eng:AVAILABLETHRUST.
+        }
+    }
+
+    return eThrust.
+}
+
+function calculateBurnDurationFromEngineThrust {
+    parameter eIsp.
+    parameter eThrust.
+    parameter deltaV.
 
     //Print ISP:
     //Print "Specific Impulse: " + eIsp.
@@ -139,25 +180,25 @@ function calculateBurnDuration {
     //Print "Thrust: " + eThrust.
 
     // What's our effective exhaust velocity?
-    SET Ve TO eIsp * 9.82.
+    LOCAL Ve IS eIsp * 9.82.
     //Print "Exhaust Velocity: " + Ve.
 
     // What's the Flow Rate? (metric tons / s)
-    Set eFlowRate TO eThrust / Ve.
+    LOCAL eFlowRate IS eThrust / Ve.
     //Print "Flow Rate: " + eFlowRate.
 
-    Set startMass To mass.
+    LOCAL startMass IS SHIP:MASS.
 
-    SET endMass TO CONSTANT():e^(LN(startMass) - (deltaV)/Ve).
+    LOCAL endMass IS CONSTANT():e^(LN(startMass) - (deltaV)/Ve).
     //Print "Start Mass: " + startMass.
     //Print "End Mass: " + endMass.
 
-    SET deltaMass TO (startMass - endMass) * CONSTANT():e^(-1*((deltaV) * 0.001) / Ve).
+    LOCAL deltaMass IS (startMass - endMass) * CONSTANT():e^(-1*((deltaV) * 0.001) / Ve).
     //Print "Delta Mass: " + deltaMass.
 
-    Set t To deltaMass / eFlowRate.
+    return deltaMass / eFlowRate.
 
-    //*********************
+//*********************
 //                var exhaustVelocity = stage.isp * Units.GRAVITY;
 //                var flowRate = stage.thrust / exhaustVelocity;
 //                var endMass = Math.Exp(Math.Log(startMass) - deltaVDrain / exhaustVelocity);
@@ -167,12 +208,11 @@ function calculateBurnDuration {
 //                deltaV -= deltaVDrain;
 //                stageDeltaV -= deltaVDrain;
 //                startMass -= deltaMass;
-    //************************
+//************************
 
+//********* Other Implementation *********//
 
-    //********* Other Implementation *********//
-
-    // Get initial acceleration.
+// Get initial acceleration.
 //    SET a0 TO maxthrust / mass.
 //    // What's our final mass?
 //    SET final_mass TO mass*CONSTANT():e^(-1*n:BURNVECTOR:MAG/Ve).//
@@ -190,6 +230,4 @@ function calculateBurnDuration {
 //    //set t to n:deltav:mag/max_acc.
 
 //    print "Estimated burn duration: " + t + " seconds".
-
-    return t.
 }
