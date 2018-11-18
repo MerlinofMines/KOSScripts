@@ -42,7 +42,12 @@ function circularizeMaintainingPrograde {
 	parameter primaryEngineList.
 	parameter secondaryEngineList IS list().
 
-	PRINT "Circularizing Maintaing Prograde".
+	PRINT "Circularizing Maintaining Prograde".
+
+	PRINT "Primary Engines: ".
+	PRINT primaryEngineList.
+	PRINT "Secondary Engines: ".
+	PRINT secondaryEngineList.
 }
 
 function getApoapsisCircularizationBurnManeuverNode {
