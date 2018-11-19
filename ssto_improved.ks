@@ -4,6 +4,9 @@ RUNONCEPATH("0:/utility.ks").
 RUNONCEPATH("0:/draw.ks").
 
 function sstoLaunch {
+    parameter primaryEngines.
+    parameter secondaryEngines IS list().
+
     CLEARSCREEN.
 
     Print "Starting Launch Sequence.".
@@ -98,33 +101,26 @@ function sstoLaunch {
             SET AG3 TO TRUE.
             SET switchMode TO TRUE.
         }
-
     }
 
     shortInfo("APOAPSIS at " + SHIP:ORBIT:APOAPSIS).
     shortInfo("Turning off Rapiers.").
     SET AG1 TO FALSE.
-    SET SASMODE TO "PROGRADE".
 
-    WAIT UNTIL ETA:APOAPSIS < 12.
-    shortInfo("Aproaching Apoapsis, Re-igniting Rapiers.").
-    SET AG1 TO TRUE.
 
-    SET circularized TO FALSE.
-    SET orbitEccentricity TO SHIP:ORBIT:ECCENTRICITY.
-
-    UNTIL (SHIP:ORBIT:PERIAPSIS > 72000 AND circularized) {
-        //If our current eccentricity is more than our previous then we're as circular as we're gonna get.
-        if(SHIP:ORBIT:ECCENTRICITY > orbitEccentricity) {
-            SET circularized TO TRUE.
-        }
-
-        SET orbitEccentricity TO SHIP:ORBIT:ECCENTRICITY.
-        WAIT 0.01.
-    }
+    circularizeMaintainingPrograde(primaryEngines, secondaryEngines).
 
     SET AG1 TO FALSE.
     SET AG2 TO FALSE.
+
+    for eng in primaryEngines {
+        SET eng:THRUSTLIMIT TO 100.
+    }
+
+    for eng in secondaryEngines {
+        SET eng:THRUSTLIMIT TO 100.
+    }
+
     info("Orbital Insertion Complete.", 100).
 
     LOCK THROTTLE TO 0.0.
