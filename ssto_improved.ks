@@ -179,8 +179,8 @@ function getDesiredHeading {
 
     LOCAL desiredHeading IS HEADING(90, desiredPitch).
 
-    drawDirection(desiredHeading, "Desired Heading").
-    drawDirection(SHIP:FACING, "Current Heading").
+//    drawDirection(desiredHeading, "Desired Heading").
+//    drawDirection(SHIP:FACING, "Current Heading").
 
     return desiredHeading.
 }

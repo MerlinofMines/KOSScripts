@@ -285,7 +285,7 @@ function sstoLaunchPanel {
 
         if (choice = "Select Engine") { return. }.
         primaryEngines:add(choice).
-        primaryEngineList:addLabel(choice:TAG).
+        primaryEngineList:addLabel(choice:NAME+" "+choice:TAG).
         primaryEnginePopup:options:remove(primaryEnginePopup:INDEX).
         secondaryEnginePopup:options:remove(primaryEnginePopup:INDEX).
         SET primaryEnginePopup:INDEX TO 0.
@@ -297,7 +297,7 @@ function sstoLaunchPanel {
 
         if (choice = "Select Engine") { return. }.
         secondaryEngines:add(choice).
-        secondaryEngineList:addLabel(choice:TAG).
+        secondaryEngineList:addLabel(choice:NAME+" "+choice:TAG).
         primaryEnginePopup:options:remove(secondaryEnginePopup:INDEX).
         secondaryEnginePopup:options:remove(secondaryEnginePopup:INDEX).
         SET primaryEnginePopup:INDEX TO 0.
@@ -494,7 +494,7 @@ function circularizeProgradePanel {
 
         if (choice = "Select Engine") { return. }.
         primaryEngines:add(choice).
-        primaryEngineList:addLabel(choice:TAG).
+        primaryEngineList:addLabel(choice:NAME+" "+choice:TAG).
         primaryEnginePopup:options:remove(primaryEnginePopup:INDEX).
         secondaryEnginePopup:options:remove(primaryEnginePopup:INDEX).
         SET primaryEnginePopup:INDEX TO 0.
@@ -506,7 +506,7 @@ function circularizeProgradePanel {
 
         if (choice = "Select Engine") { return. }.
         secondaryEngines:add(choice).
-        secondaryEngineList:addLabel(choice:TAG).
+        secondaryEngineList:addLabel(choice:NAME+" "+choice:TAG).
         primaryEnginePopup:options:remove(secondaryEnginePopup:INDEX).
         secondaryEnginePopup:options:remove(secondaryEnginePopup:INDEX).
         SET primaryEnginePopup:INDEX TO 0.
