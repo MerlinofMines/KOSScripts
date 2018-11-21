@@ -2,6 +2,7 @@ RUNONCEPATH("0:/maneuver.ks").
 RUNONCEPATH("0:/output.ks").
 RUNONCEPATH("0:/utility.ks").
 RUNONCEPATH("0:/draw.ks").
+RUNONCEPATH("0:/constants.ks").
 
 function sstoLaunch {
     parameter primaryEngines.
@@ -40,7 +41,7 @@ function sstoLaunch {
     //Print "Engaging SAS".
     //SAS ON.
 
-    UNTIL SHIP:GROUNDSPEED > 160 OR ALT:RADAR > 5 {
+    UNTIL RUNWAY_EAST_COORDINATES:DISTANCE < 200 OR ALT:RADAR > 5 {
     //    SET facing TO SHIP:FACING.
         SET pitch to SHIP:FACING:PITCH - 0.2. // runway is a little off from east it seems.
     //    Print "Facing: " + facing.
@@ -62,12 +63,6 @@ function sstoLaunch {
         SET SHIP:CONTROL:WHEELSTEER TO steer.
     }
 
-
-    WAIT UNTIL ALT:RADAR > 5.
-
-    shortInfo("Raising Gear.").
-    GEAR OFF.
-
     SET currentPrograde TO progradeDegrees().
     SET currentTime TO TIME:SECONDS.
     SET currentPitch to SHIP:CONTROL:PITCH.
@@ -81,6 +76,11 @@ function sstoLaunch {
     LOCK STEERING TO getDesiredHeading().
 
     SET SHIP:CONTROL:NEUTRALIZE to True.
+
+    WAIT UNTIL ALT:RADAR > 5.
+
+    shortInfo("Raising Gear.").
+    GEAR OFF.
 
     WAIT UNTIL SHIP:ALTITUDE > 20000.
 
