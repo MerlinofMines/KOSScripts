@@ -107,24 +107,26 @@ function sstoLaunch {
     shortInfo("Turning off Rapiers.").
     SET AG1 TO FALSE.
 
-
     circularizeMaintainingPrograde(primaryEngines, secondaryEngines).
 
+    LOCK THROTTLE TO 0.0.
+    WAIT UNTIL THROTTLE = 0.0.
+
+    //Shutdown Engines and reset Thrust Limiters
     SET AG1 TO FALSE.
     SET AG2 TO FALSE.
 
     for eng in primaryEngines {
         SET eng:THRUSTLIMIT TO 100.
+        eng:shutdown().
     }
 
     for eng in secondaryEngines {
         SET eng:THRUSTLIMIT TO 100.
+        eng:shutdown().
     }
 
     info("Orbital Insertion Complete.", 100).
-
-    LOCK THROTTLE TO 0.0.
-    WAIT UNTIL THROTTLE = 0.0.
 
     UNLOCK STEERING.
     UNLOCK THROTTLE.

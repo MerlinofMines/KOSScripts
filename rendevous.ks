@@ -25,7 +25,7 @@ function rendevous {
 	matchInclination(targetVessel).
 
 	info("Circularing Orbit").
-	circularizeAtApoapsis().
+	circularizeMaintainingApoapsis().
 
 	info("Initiating Hohmann Transfer").
 	hohmannTransfer(targetVessel).
