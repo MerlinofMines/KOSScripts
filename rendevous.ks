@@ -148,7 +148,15 @@ function hohmannTransfer {
 
 	//Step 2: Execute Burn to change apoapsis to match our target's apoapsis.
 	shortInfo("Executing Apoapsis Alignment Maneuver").
-	executeNextManeuver().
+
+
+	LOCAL targetApoapsis IS targetVessel:ORBIT:APOAPSIS.
+	PRINT "Target Apoapsis: " + targetApoapsis.
+
+	LOCAL state IS lexicon().
+	LOCAL controller IS matchApoapsisThrottleController@:bind(targetApoapsis):bind(state).
+
+	executeNextManeuverWithController(controller).
 	WAIT 2.//Wait for us to stop moving so that next time warp doesn't fail.
 
 	//Step 3: Find out how many rotations we need to warp through until the target vessel

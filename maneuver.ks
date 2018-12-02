@@ -24,8 +24,21 @@ function changeApoapsis {
     return nd.
 }
 
-//TODO: There's a reference from KER needed here.
 function executeNextManeuver {
+    SET nd TO NEXTNODE.
+    set dv0 to nd:deltav.
+
+    LOCAL controller IS deltaVRemainingThrottleController@:bind(nd):bind(dv0).
+
+//    LOCAL state IS lexicon().
+//    LOCAL controller IS matchApoapsisThrottleController@:bind(100000):bind(state).
+
+    executeNextManeuverWithController(controller).
+}
+
+function executeNextManeuverWithController {
+    parameter throttleController.
+
     // Get Next Maneuver
     SET n TO NEXTNODE.
 
@@ -55,7 +68,7 @@ function executeNextManeuver {
     WAIT UNTIL TIME:SECONDS >= start_time.
 
     //Start Node Execution, continue until Delta V is exhausted.
-    maneuverBurn().
+    maneuverBurn(throttleController).
 
     REMOVE n.
 
@@ -63,51 +76,111 @@ function executeNextManeuver {
     UNLOCK THROTTLE.
 }
 
-// Taken Shamefully from
+//Throttle Controller allows us to burn through maneuvers which are trying to optimize different attributes besides
+//just the remaining delta v.  Very useful for long burns for things like encounters, etc which rarely match
+//the delta v of the maneuver burn because of the burn duration.
+//throttleController is expected to return a value between 0.0 and 1.0 until the burn is complete, at which
+//point throttleController should return -1 (or any negative number) indicating that the burn has been completed.
 function maneuverBurn {
-    //Get Next Maneuver.
-    SET nd TO NEXTNODE.
+    parameter throttleController.
 
-    //we only need to lock throttle once to a certain variable in the beginning of the loop,
-    //and adjust only the variable itself inside it
-    set tset to 0.
-    lock throttle to tset.
+    SET myThrottle TO 1.
 
-    set done to False.
-    //initial deltav
-    set dv0 to nd:deltav.
-    until done
-    {
-        //recalculate current max_acceleration, as it changes while we burn through fuel
-        set max_acc to ship:maxthrust/ship:mass.
+    LOCK THROTTLE TO myThrottle.
 
-        //throttle is 100% until there is less than 0.25 second of time left to burn
-        //when there is less than 1 second - decrease the throttle linearly
-        set tset to min(8*nd:deltav:mag/max_acc, 1).
+    LOCAL newThrottle IS throttleController().
 
-        //here's the tricky part, we need to cut the throttle as soon as our nd:deltav and initial deltav start facing opposite directions
-        //this check is done via checking the dot product of those 2 vectors
-        if vdot(dv0, nd:deltav) < 0
-        {
-            print "End burn, remain dv " + round(nd:deltav:mag,1) + "m/s, vdot: " + round(vdot(dv0, nd:deltav),1).
-            lock throttle to 0.
-            break.
-        }
+    UNTIL newThrottle < 0 {
+        CLEARSCREEN.
+        SET myThrottle TO newThrottle.
+        SET newThrottle TO throttleController().
 
-        //we have very little left to burn, less then 0.1m/s
-        if nd:deltav:mag < 0.1
-        {
-            print "Finalizing burn, remain dv " + round(nd:deltav:mag,1) + "m/s, vdot: " + round(vdot(dv0, nd:deltav),1).
-            //we burn slowly until our node vector starts to drift significantly from initial vector
-            //this usually means we are on point
-            wait until vdot(dv0, nd:deltav) < 0.5.
-
-            lock throttle to 0.
-            print "End burn, remain dv " + round(nd:deltav:mag,1) + "m/s, vdot: " + round(vdot(dv0, nd:deltav),1).
-            set done to True.
-        }
+        PRINT "Throttle: " + myThrottle.
     }
+
+    lock throttle to 0.
+    PRINT "Maneuver Complete".
 }
+
+function matchApoapsisThrottleController {
+    parameter desiredAp.
+    parameter previousState.
+
+    //First Iteration, set up state and return 100%.
+    IF NOT previousState:HASKEY("A") {
+        SET previousState["A"] TO SHIP:ORBIT:APOAPSIS.
+        SET previousState["T"] TO TIME:SECONDS.
+        SET previousState["H"] TO 1.
+        WAIT 0.01.
+        return 1.
+    }
+
+    LOCAL previousAp IS previousState["A"].
+    LOCAL previousTime IS previousState["T"].
+    LOCAL previousThrottle IS previousState["H"].
+
+    LOCAL newAp IS SHIP:ORBIT:APOAPSIS.
+    LOCAL newTime IS TIME:SECONDS.
+
+    LOCAL apChange IS newAp - previousAp.
+    LOCAL timeChange IS newTime - previousTime.
+    LOCAL apChangeRate IS apChange/timeChange.
+
+    PRINT "Desired Ap: " + desiredAp.
+    PRINT "Time Change: " + timeChange.
+    PRINT "Apoapsis change rate: " + apChangeRate.
+
+    IF SHIP:ORBIT:APOAPSIS > desiredAp RETURN -1.
+
+    SET previousState["A"] TO newAp.
+    SET previousState["T"] TO newTime.
+
+    WAIT 0.01.
+
+    //Still have >1 burn time, previous throttle is ok.
+    IF newAp + apChangeRate < desiredAp {
+        return previousThrottle.
+    }
+
+    //Time to calculate new throttle.
+    LOCAL newThrottle IS min(1,2*(desiredAp+0.1-newAp)/(apChangeRate)) * previousThrottle.
+    SET previousState["H"] TO newThrottle.
+    return newThrottle.
+}
+
+function deltaVRemainingThrottleController {
+    parameter nd.
+    parameter dv0.
+
+    //recalculate current max_acceleration, as it changes while we burn through fuel
+    set max_acc to ship:maxthrust/ship:mass.
+
+    //here's the tricky part, we need to cut the throttle as soon as our nd:deltav and initial deltav start facing opposite directions
+    //this check is done via checking the dot product of those 2 vectors
+    if vdot(dv0, nd:deltav) < 0
+    {
+        print "End burn, remain dv " + round(nd:deltav:mag,1) + "m/s, vdot: " + round(vdot(dv0, nd:deltav),1).
+        return -1.
+    }
+
+    //we have very little left to burn, less then 0.1m/s
+    if nd:deltav:mag < 0.1
+    {
+        print "Finalizing burn, remain dv " + round(nd:deltav:mag,1) + "m/s, vdot: " + round(vdot(dv0, nd:deltav),1).
+    //we burn slowly until our node vector starts to drift significantly from initial vector
+    //this usually means we are on point
+        wait until vdot(dv0, nd:deltav) < 0.5.
+
+        print "End burn, remain dv " + round(nd:deltav:mag,1) + "m/s, vdot: " + round(vdot(dv0, nd:deltav),1).
+
+        return -1.
+    }
+
+    //throttle is 100% until there is less than 0.25 second of time left to burn
+    //when there is less than 1 second - decrease the throttle linearly
+    return min(8*nd:deltav:mag/max_acc, 1).
+}
+
 
 function calculateHalfBurnDuration {
     parameter deltaV.
