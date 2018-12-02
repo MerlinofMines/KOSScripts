@@ -202,7 +202,7 @@ function getDirection {
 function getDirectionSub5000 {
     SET airSpeed to SHIP:AIRSPEED.
 
-    SET altitudeWeight TO MAX(0.001, 1 - (ALTITUDE / 5000)).
+    SET altitudeWeight TO 4*MAX(0.001, 1 - (ALTITUDE / 5000)).
     PRINT "altitudeWeight: " + altitudeWeight.
     SET speedWeight TO MAX(0.001, 1 - (airSpeed / 500)) / (altitudeWeight * 1.5).
     PRINT "speedWeight: " + speedWeight.

@@ -152,8 +152,6 @@ function addMissionTaskButtons {
 
     Local taskCategories IS addTabWidget(addTaskTab).
 
-    Local variableBox IS addTaskTab:AddStack().
-
     //Ship Systems Category
     Local shipCategory IS addTab(taskCategories, "Ship Systems").
     Local shipOptions IS addTabWidget(shipCategory, TRUE).
@@ -215,6 +213,9 @@ function addMissionTaskButtons {
 
     LOCAL circularizeProgradeTab IS addTab(orbitOptions, "Circularize Prograde", TRUE).
     circularizeProgradePanel(circularizeProgradeTab).
+
+    LOCAL executeManeuverTab IS addTab(orbitOptions, "Execute Maneuver", TRUE).
+    addMissionTaskButton(executeManeuverTab, "Execute Maneuver", {executeNextManeuver().}).
 
 //Test Category
 //    Local testCategory IS addTab(taskCategories, "Test").
@@ -468,9 +469,10 @@ function matchInclinationPanel {
 function dockOnPortTask {
     parameter sourcePort.
     parameter targetVessel.
+    parameter targetPort.
 
     Local taskName IS "Docking with " + targetVessel:SHIPNAME.
-    Local delegate IS dockWithTarget@:bind(sourcePort, targetVessel).
+    Local delegate IS dock@:bind(sourcePort, targetPort).
 
     return getTask(taskName, delegate).
 }
@@ -486,18 +488,26 @@ function dockOnPortPanel {
         sourcePortPopup:addoption(option).
     }
 
-    LIST Targets IN dockableTargets.
+    SET dockableTargets TO getDockableTargets(SHIP).
+
+    LOCAL label IS panel:ADDLABEL("Target").
+    LOCAL targetPopup is panel:addPopupMenu().
 
     LOCAL label IS panel:ADDLABEL("Target Port").
-    LOCAL targetPopup is panel:addPopupMenu().
+    LOCAL targetPortPopup IS panel:addPopupMenu().
 
     for option IN dockableTargets {
         targetPopup:addoption(option).
     }
 
+    SET targetPopup:ONCHANGE TO {
+        parameter choice.
+        SET targetPortPopup:OPTIONS TO getDockablePorts(choice).
+    }.
+
     Local dockButton IS panel:ADDBUTTON("Dock").
     SET dockButton:ONCLICK TO {
-        addMissionTask(dockOnPortTask( sourcePortPopup:VALUE, targetPopup:VALUE)).
+        addMissionTask(dockOnPortTask( sourcePortPopup:VALUE, targetPopup:VALUE, targetPortPopup:VALUE)).
         activateButton(dockButton).
     }.
 }
