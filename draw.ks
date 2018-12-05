@@ -22,3 +22,7 @@ function drawVector {
 	parameter startingVector IS V(0,0,0).
 	LOCAL drawnVector TO VECDRAW(startingVector, endingVector, RGB(1,0,0), label, 1.0, TRUE, 0.2).
 }
+
+function erase {
+    CLEARVECDRAWS().
+}
