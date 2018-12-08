@@ -204,3 +204,63 @@ function timeToOrbitRevolutionsFromLastPeriapsis {
 	return revolutions*period - timeSinceLastPeriapsis.	
 }
 
+//Since the MUN has 0 inclination with respect to the "reference plane", we can reverse
+//engineer the normal vector to the true reference plane using the cross product of it and the solar prime vector.
+function getReferencePlaneNormalVector {
+    LOCAL refVector IS POSITIONAT(MUN,0).
+    return VCRS(refVector, SOLARPRIMEVECTOR):NORMALIZED.
+}
+
+function getLANVector {
+    parameter targetOrbital.
+
+    LOCAL c IS 1.
+    LOCAL p IS 1.
+
+//IF no inclination, the LANVector is the same as the SOLARPRIMEVECTOR.
+    IF targetOrbital:ORBIT:LAN = 0 {
+        return SOLARPRIMEVECTOR:NORMALIZED.
+    } ELSE {
+        LOCAL rotation IS -ANGLEAXIS(targetOrbital:ORBIT:LAN,getReferencePlaneNormalVector()).
+        return (rotation*SOLARPRIMEVECTOR):NORMALIZED.
+    }
+}
+
+function getPeriapsisVector {
+    parameter targetOrbital.
+
+    IF targetOrbital:ORBIT:ECCENTRICITY > 0 {
+        LOCAL timeAtPeriapsis IS timeToOrbitRevolutionsFromLastPeriapsis(1, targetOrbital)+TIME:SECONDS.
+        return positionVectorAt(targetOrbital, timeAtPeriapsis).
+    }
+
+    LOCAL lanVector IS getLANVector(targetOrbital).
+    LOCAL refAngle IS -ANGLEAXIS(targetOrbital:Orbit:INCLINATION,lanVector)*SOLARPRIMEVECTOR.
+
+    IF (VANG(refAngle,getReferencePlaneNormalVector()) > 90) {
+        SET refAngle TO -refAngle.
+    }
+
+//    drawVector(refAngle*(targetOrbital:ORBIT:PERIAPSIS+b:ORBIT:BODY:RADIUS),"Reference Vector", KERBIN:POSITION).
+
+    LOCAL orbitNormalVector IS VCRS(lanVector, refAngle).
+//    drawVector(orbitNormalVector*(targetOrbital:ORBIT:PERIAPSIS+b:ORBIT:BODY:RADIUS),"Normal Vector", KERBIN:POSITION).
+
+    LOCAL periapsisVector IS ANGLEAXIS(targetOrbital:ORBIT:ARGUMENTOFPERIAPSIS, orbitNormalVector)*lanVector.
+
+    return periapsisVector:NORMALIZED.
+}
+
+//See https://en.wikipedia.org/wiki/True_anomaly#Radius_from_true_anomaly
+function getRadiusFromTrueAnomaly {
+    parameter targetOrbital.
+    parameter trueAnomaly.
+
+    LOCAL e IS targetOrbital:ORBIT:ECCENTRICITY.
+    LOCAL a IS targetOrbital:ORBIT:SEMIMAJORAXIS.
+
+    LOCAL numerator IS 1 - (e*e).
+    LOCAL denominator IS 1 + e*cos(trueAnomaly).
+
+    return a*numerator/denominator.
+}

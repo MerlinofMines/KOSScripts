@@ -124,237 +124,174 @@ function suicideBurn {
     Print "Suicide burn complete.  Final Relative Velocity: " + relativeVelocity(targetVessel, sourceVessel):MAG.
     Print "Final Separation Distance: " + separationDistanceAtTime(sourceVessel, targetVessel, TIME:SECONDS).
 }
-
 //This function assumes that you have already performed an inclination change and the targetVessel Is in the
 //same plane as sourceVessel.
 function hohmannTransfer {
-	parameter targetVessel.
-	parameter sourceVessel Is SHIP.
+	parameter targetOrbital.
 
-	//The first step here Is to figure out when to burn to apoapsis.  We have a choice here.  We can either immediately
-	//Burn up to apoapsis and then calculate our expected separation distance, or we can figure out the optimal time
-	//to Burn up to apoapsis
+	//1. Calculate Transfer Time.
+	PRINT "Calculating Hohmann Transfer Time.  This may take up to 30 seconds.".
+	shortInfo("Calculating Hohmann Transfer Time").
 
-	//Note, how do we hohman transfer to a lower orbit? Would be nice to handle that in this method as well.
+	LOCAL transferTime IS getHohmannTransferTime(targetOrbital).
 
-	//Step 1: Identify the point in time to burn prograde (or possibly retrograde) in order raise (or possibly lower) our apoapsis to intersect nicely with the apoapsis of our target.  For highly eccentric orbits this will not result in an efficient transfer, but for most circular orbits this isn't as big a factor, and makes the next step simple, as we now have a well known point of minimum intersection at which we can burn prograde to synchronize the orbital periods to force a rendevous
-	//using our target's (and so by our) apoapsis.
+	//2. Calculate Burn Amount.
+	LOCAL transferDeltaV IS getHohmannTransferDeltaV(targetOrbital, transferTime).
 
-	shortInfo("Matching Target Apoapsis").
-	shortInfo("Calculating Apoapsis Alighnment Maneuver").
-	Local nd Is getManeuverNodeToMatchTargetApoapsis(targetVessel, sourceVessel).
+	//3. Calculate final apoapsis of hohmann transfer orbit
+	LOCAL positionVector IS positionVectorAt(SHIP, transferTime).
+	LOCAL targetPeriapsisVector IS getPeriapsisVector(targetOrbital).
+	LOCAL hohmannTrueAnomaly IS VANG(-positionVector, targetPeriapsisVector).
+	LOCAL hohmannRadius IS getRadiusFromTrueAnomaly(targetOrbital, hohmannTrueAnomaly).
+	LOCAL desiredApoapsis IS hohmannRadius - SHIP:ORBIT:BODY:RADIUS.
 
-	Add nd.
+	Print "Desired Apoapsis: " + desiredApoapsis.
 
-	//Step 2: Execute Burn to change apoapsis to match our target's apoapsis.
-	shortInfo("Executing Apoapsis Alignment Maneuver").
+	//4. Set up Maneuver.
+	SET myNode to NODE(transferTime, 0, 0, transferDeltaV).
+	ADD myNode.
 
-
-	LOCAL targetApoapsis IS targetVessel:ORBIT:APOAPSIS.
-	PRINT "Target Apoapsis: " + targetApoapsis.
-
+	//5. Execute Maneuver
 	LOCAL state IS lexicon().
-	LOCAL controller IS matchApoapsisThrottleController@:bind(targetApoapsis):bind(state).
+	LOCAL controller IS matchApoapsisThrottleController@:bind(desiredApoapsis):bind(state).
 
 	executeNextManeuverWithController(controller).
-	WAIT 2.//Wait for us to stop moving so that next time warp doesn't fail.
-
-	//Step 3: Find out how many rotations we need to warp through until the target vessel
-	//is on it's closest approach to us.
-	shortInfo("Calculating Time to Closest Approach").
-	Local closestApproachAtApoapsisTime Is getTimeToClosestApproachAt(targetVessel, timeAtNextApoapsis(sourceVessel), sourceVessel).
-
-	Local periapsisBeforeClosestApproachTime Is closestApproachAtApoapsisTime - sourceVessel:ORBIT:PERIOD/2.
-
-	IF (periapsisBeforeClosestApproachTime > TIME:SECONDS) {
-		shortInfo("Warping to Closest approach").
-        WARPTO(periapsisBeforeClosestApproachTime).
-        WAIT UNTIL periapsisBeforeClosestApproachTime < TIME:SECONDS.
-    }
-
-	shortInfo("Calculating Minimum Orbital intersection...this may take up to 30 seconds.").
-	Local timeAtIntersection Is timeOfMinimumOrbitalIntersection(targetVessel, periapsisBeforeClosestApproachTime, SHIP).
-
-	info("Forcing a Rendevous").
-	shortInfo("Calculating Rendevous Burn").
-	Local rendevousBurnDeltaV Is calculateRendevousBurnDeltaV(target, timeAtIntersection).
-
-//	Print "Needed Delta V to Synchronize Orbits: " + rendevousBurnDeltaV.
-
-	Local nd Is NODE(timeAtIntersection, 0, 0, rendevousBurnDeltaV).
-
-	Add nd.
-
-	SAS ON.
-	SET SASMODE TO "MANEUVER".
-
-	shortInfo("Rotating to Rendevous Burn").
-	UNTIL VANG(SHIP:FACING:VECTOR, nd:BURNVECTOR) < 0.1 {
-		CLEARSCREEN.
-		PRINT "Orienting to Rendevous Burn".
-		Print "Angle: " + VANG(SHIP:FACING:VECTOR, nd:BURNVECTOR).
-	}
-
-	Local halfBurnDuration Is calculatehalfBurnDuration(rendevousBurnDeltaV).
-	Local rendevousBurnTime Is timeAtIntersection - halfBurnDuration.
-
-	IF (rendevousBurnTime > TIME:SECONDS - 15) {
-		shortInfo("Warping to Rendevous Burn").
-        WARPTO(rendevousBurnTime - 15).
-    }
-
-	UNTIL TIME:SECONDS > rendevousBurnTime {
-		CLEARSCREEN.
-		Print "Time to Rendevous Burn: " + (rendevousBurnTime - TIME:SECONDS).
-	}
-
-	//Step 4: Perform the Rendevous Burn.
-	shortInfo("Executing Rendevous Burn").
-	executeNextManeuver().
 	shortInfo("Hohmann Transfer Complete").
 }
 
-function calculateRendevousBurnDeltaV {
-	parameter targetVessel.
-	parameter timeOfOrbitalIntersectionAtClosestApproach.
-	parameter sourceVessel Is SHIP.
+function getHohmannTransferDeltaV {
+	parameter targetOrbital.
+	parameter transferTime.
 
-	//Step 1: Calculate Needed Orbital period to meet target at next time of orbital intersection.
-	//TODO: Think about changing this to just use "now", and add orbital periods after calculating time of minimum angle
-	//vector.
-	Local startTime Is timeAtNextPeriapsis(targetVessel).
-	UNTIL startTime > timeOfOrbitalIntersectionAtClosestApproach {
-		SET startTime TO startTime + targetVessel:Orbit:Period.
+	LOCAL positionVector IS positionVectorAt(SHIP,transferTime).
+
+//1. Calculate the radius of target orbital at given transferTime.
+//Note that the true anomaly > 180 doesn't matter since cos(degrees) = cos(-degrees).
+	LOCAL targetPeriapsisVector IS getPeriapsisVector(targetOrbital).
+	LOCAL hohmannTrueAnomaly IS VANG(-positionVector,targetPeriapsisVector).
+	LOCAL hohmannRadius IS getRadiusFromTrueAnomaly(targetOrbital,hohmannTrueAnomaly).
+
+//2. Calculate theoritical position vector of the SHIP at that target Orbital.
+	LOCAL hohmannPositionVector IS -positionVector:NORMALIZED*hohmannRadius.
+
+//3. Calculate SMA for hohmann transfer orbit.
+	LOCAL hohmannSMA IS (positionVector:MAG + hohmannRadius)/2.
+
+//4.  Using vis viva equation, calculate needed delta V at transferTime.
+//See https://en.wikipedia.org/wiki/Vis-viva_equation
+	LOCAl v2 IS SHIP:ORBIT:BODY:MU * ( (2 / positionVector:MAG) - (1 / hohmannSMA) ).
+	LOCAL hohmannVelocity IS sqrt(v2).
+
+	LOCAL currentVelocity IS VELOCITYAT(SHIP,transferTime):ORBIT:MAG.
+
+	return hohmannVelocity - currentVelocity.
+}
+
+function getHohmannTransferTime {
+	parameter targetOrbital.
+	parameter startTime Is TIME:SECONDS.
+	Local stepNumber Is 10.
+	Local stepDuration Is SHIP:ORBIT:PERIOD / stepNumber.
+
+	Local transferTime Is getHohmannTransferTimeIterate(targetOrbital, startTime, stepNumber, stepDuration).
+
+	LOCAL separationDistance IS getHohmannTransferSeparationDistance(targetOrbital, transferTime).
+
+	PRINT "Closest Calculated Separation Distance: " + separationDistance.
+
+	//This is hardcoded...
+	IF separationDistance < 1000 {
+		return transferTime.
 	}
 
-	Local targetTimeAtNextIntersection IS
-	timeofMinimumVectorAngle(sourceVessel, timeOfOrbitalIntersectionAtClosestApproach, startTime, targetVessel).
-
-	Local neededSourceVesselPeriod Is targetTimeAtNextIntersection - timeOfOrbitalIntersectionAtClosestApproach.
-
-	Print "Needed Source Vessel Period: " + neededSourceVesselPeriod.
-	Print "Current Source Vessel Period: " + sourceVessel:Orbit:Period.
-
-	//Step 2: Calculate Needed semi major axis length to have that orbital period.
-	//See https://en.wikipedia.org/wiki/Orbital_period#Small_body_orbiting_a_central_body
-	Local mu Is sourceVessel:Orbit:Body:Mu.
-	Local neededSemiMajorAxis Is (mu*(neededSourceVesselPeriod^2) / (4*(CONSTANT:PI^2)))^(1.0/3.0).
-
-	Print "Needed Source Vessel Semi Major Axis: " + neededSemiMajorAxis.
-	Print "Current Source Vessel Semi Major Axis: " + sourceVessel:Orbit:SemiMajorAxis.
-
-	//Step 3: Calculate needed orbital velocity at timeOfOrbitalIntersectionAtClosestApproach
-	//See https://en.wikipedia.org/wiki/Vis-viva_equation.
-	Local r Is positionVectorAt(sourceVessel, timeOfOrbitalIntersectionAtClosestApproach):MAG.
-	Local neededOrbitalVelocityAtIntersection Is SQRT(mu*(2/r - 1/neededSemiMajorAxis)).
-
-	//Step 4: difference in Delta V Is simply the needed orbital velocity minus current velocity
-	//at the time of orbital intersection at closest approach.
-	Local currentOrbitalVelocityAtIntersection Is VelocityAt(sourceVessel,timeOfOrbitalIntersectionAtClosestApproach):ORBIT:MAG.
-	Local neededDeltaV Is neededOrbitalVelocityAtIntersection - currentOrbitalVelocityAtIntersection.
-
-	return neededDeltaV.
+	return getHohmannTransferTime(targetOrbital,startTime+SHIP:ORBIT:PERIOD).
 }
 
-//This function will return a maneuver node which will
-//align the periapsis & apoapsis of the sourceVessel with the targetVessel.
-//This function assumes the two vessels are already in the same plane.
-//This function needs some improvement, the location of the final apoapsis Is not exactly right, but darn close!
-function getManeuverNodeToMatchTargetApoapsis {
-	parameter targetVessel.
-	parameter sourceVessel Is SHIP.
+function getHohmannTransferTimeIterate {
+	parameter targetOrbital.
+	parameter startTime.
+	parameter stepNumber.
+	parameter stepDuration.
+	parameter errorBound Is 0.01. //Error bound, in seconds.
+	parameter iterationCount Is 1.
 
-	Local timeAtApoapsis Is timeAtNextApoapsis(targetVessel).
+	Local closestSeparationDistance Is getHohmannTransferSeparationDistance(targetOrbital, startTime).
+	Local closestSeparationTime Is startTime.
 
-	Local targetPeriapsisVector Is -positionVectorAt(targetVessel, timeAtApoapsis).
+	FROM {Local step Is 1.} UNTIL step >= stepNumber STEP {SET step TO step + 1.} DO {
+	//    		PRINT "Step is: " + step.
+		Local separationTime Is startTime + (step * stepDuration).
 
-	Local t Is timeofMaximumVectorAngle(targetVessel, timeAtApoapsis, sourceVessel).
+	//    		PRINT "Separation Time is: " + separationTime.
 
-	Local positionVector Is positionVectorAt(sourceVessel, t).
+		Local newClosestSeparationDistance Is getHohmannTransferSeparationDistance(targetOrbital, separationTime).
 
-//	PRINT "Time of maximum Vector Angle: " + t.
+		IF (newClosestSeparationDistance < closestSeparationDistance) {
+			SET closestSeparationDistance TO newClosestSeparationDistance.
+			SET closestSeparationTime TO separationTime.
+		}
+	//        WAIT 0.05.
+	}
 
-//	drawVector(targetPeriapsisVector, "Periapsis Vector", sourceVessel:ORBIT:BODY:POSITION).
-//	drawVector(positionVector, "Maximum Angle", sourceVessel:ORBIT:BODY:POSITION).
+	if(stepDuration < errorBound) {
+	//    		PRINT "Achieved requested result in " + iterationCount + " iterations".
+	//    		PRINT "Step Duration: " + stepDuration.
+	//    		PRINT "Closest Separation Distance: " + closestSeparationDistance.
+		return closestSeparationTime.
+	}
 
-	Local deltaV Is deltaVToChangeApoapsisAt(t, targetVessel:ORBIT:APOAPSIS, sourceVessel).
+	Local newStartTime Is closestSeparationTime - stepDuration.
+	Local newStepDuration TO (stepDuration * 2) / stepNumber.
 
-    // future orbit properties
-    Local r2 Is positionVectorAt(sourceVessel, t):MAG.
-    Local sma2 Is (r2 + sourceVessel:ORBIT:BODY:RADIUS + targetVessel:ORBIT:APOAPSIS)/2. // semi major axis target orbit
-    Local v2 Is sqrt((sourceVessel:ORBIT:BODY:mu * (2/r2 - 1/sma2 ) ) ).
+	Local bestTransferTime TO getHohmannTransferTimeIterate(targetOrbital, newStartTime, stepNumber, newStepDuration, errorBound, iterationCount+1).
 
-	Local targetApoapsisProgradeVector Is VelocityAt(targetVessel, timeAtApoapsis):ORBIT.
-
-	Local sourceProgradeVectorAtNewPeriapsis Is VelocityAt(sourceVessel, t):ORBIT.
-
-	Local neededProgradeVectorAtNewPeriapsis Is -targetApoapsisProgradeVector:NORMALIZED*v2.
-
-//	PRINT "Needed Prograde velocity: " + neededProgradeVectorAtNewPeriapsis:MAG.
-
-	Local deltaVector Is neededProgradeVectorAtNewPeriapsis - sourceProgradeVectorAtNewPeriapsis.
-
-	//Need to convert deltaVector to
-//	PRINT "Needed Delta V: " + deltaVector:MAG.
-
-//	PRINT "Vector: " + deltaVector.
-
-	Local vectorAngleDiff Is VANG(neededProgradeVectorAtNewPeriapsis, sourceProgradeVectorAtNewPeriapsis).
-
-	//Let's try out this shnazzy eq.
-	Local argOfPerDeltaV Is 2*sqrt(sourceVessel:ORBIT:BODY:MU / (sma2*(1-sourceVessel:ORBIT:ECCENTRICITY^2)))*sin(vectorAngleDiff/2).
-
-//	PRINT "Vector Angle Diff: " + vectorAngleDiff.
-//	PRINT "argOfPerDeltaV: " + argOfPerDeltaV.
-
-//	PRINT "cos of argOfPerDeltaV: " + cos(vectorAngleDiff)*argOfPerDeltaV.
-
-//	PRINT "cosAngle: " + cos(vectorAngleDiff)*cos(vectorAngleDiff)*deltaVector:MAG.
-//	PRINT "sinAngle: " + sin(vectorAngleDiff)*deltaVector:MAG.
-
-    Local nd Is node(t, argOfPerDeltaV, 0, deltaVector:MAG).
-
-    return nd.
+	return bestTransferTime.
 }
 
-function deltaVToChangeApoapsisAt {
-    parameter newPeriapsisTime.
-    parameter newApoapsis.
-    parameter sourceVessel Is SHIP.
+//This function will calculate the separation distance from the target orbital
+//if a Hohmann Transfer burn was initiated at the given transfer time.
+//It does this by calculating the time at which SHIP will be at orbital radius
+//of the target orbital after the hohmann transfer was completed, and then calculating the
+//distance from there to the actual position of the targetOrbital at that point in time.
 
-    Local mu Is body:mu.
-    Local br Is body:radius.
+//This function assumes that SHIP and targetOrbital are coplanar, though the result will still be
+//true if called for a targetOrbital that is not coplanar.
 
-    // present orbit properties
-    Local vom Is velocity:orbit:mag.               // actual velocity
-    Local r Is br + altitude.                      // actual distance to body
+//This function also, reasonably, assumes that the targetOrbital and SHIP are orbiting the same body.
+function getHohmannTransferSeparationDistance {
+	parameter targetOrbital.
+	parameter transferTime.
 
-    Local v1 Is VelocityAt(sourceVessel, newPeriapsisTime):ORBIT:MAG. //velocity at new burn periapsis
-    Local sma1 Is (periapsis + 2*br + apoapsis)/2. // semi major axis present orbit
+	LOCAL positionVector IS positionVectorAt(SHIP,transferTime).
 
-//    PRINT "r: " + r.
-//    PRINT "sma1: " + sma1.
-//    PRINT "Known Sma1: " + ship:ORBIT:SEMIMAJORAXIS.
-//    PRINT "Vom: " + vom.
-//    PRINT "MU: " + mu.
+//1. Calculate the radius of target orbital if transfer was initiated at transferTime.\
+//Note that the true anomaly > 180 doesn't matter since cos(degrees) = cos(-degrees).
+	LOCAL targetPeriapsisVector IS getPeriapsisVector(targetOrbital).
+	LOCAL hohmannTrueAnomaly IS VANG(-positionVector,targetPeriapsisVector).
+	LOCAL hohmannRadius IS getRadiusFromTrueAnomaly(targetOrbital,hohmannTrueAnomaly).
 
-    // future orbit properties
-    Local r2 Is positionVectorAt(sourceVessel, newPeriapsisTime):MAG.
-    Local sma2 Is (r2 + br + newApoapsis)/2. // semi major axis target orbit
-    Local v2 Is sqrt((mu * (2/r2 - 1/sma2 ) ) ).
+//2. Calculate theoritical position vector of the SHIP at that target Orbital.
+	LOCAL hohmannPositionVector IS -positionVector:NORMALIZED*hohmannRadius.
+//    drawVector(hohmannPositionVector, "hohmannPositionVector",SHIP:ORBIT:BODY:POSITION).
 
-//    PRINT "r2: " + r2.
-//    PRINT "sma2: " + sma2.
-//    PRINT  "V2: " + v2.
-//    PRINT "VOM ^ 2: " + vom^2.
+//3. Calculate the time it'll take for SHIP to reach targetOrbital radius and add to transferTime.
+	LOCAL hohmannSMA IS (positionVector:MAG + hohmannRadius)/2.
+	LOCAL hohmannTransferSeconds IS CONSTANT:PI*sqrt(hohmannSMA*hohmannSMA*hohmannSMA/SHIP:ORBIT:BODY:MU).
+	LOCAL arrivalInstant IS hohmannTransferSeconds+transferTime.
 
-//    PRINT "Other Stuff: " + (2/r2 - 1/sma2 ).
-//    PRINT "Other Stuff * mu: " + (2/r2 - 1/sma2 ) * mu.
+//    PRINT "Body Radius: " + SHIP:ORBIT:BODY:RADIUS.
+//    PRINT "hohmannRadius: " + hohmannRadius.
+//    PRINT "hohmannSMA: " + hohmannSMA.
+//    PRINT "hohmannTransferSeconds: " + hohmannTransferSeconds.
+//    PRINT "arrivalInstant: " + arrivalInstant.
 
-    // create node
-    Local deltav Is v2 - v1.
+//4. Calculate Position of targetOrbital at that instant in time.
+	LOCAL targetOrbitalPosition IS POSITIONAT(targetOrbital,arrivalInstant) - SHIP:ORBIT:BODY:POSITION.
+//    drawVector(targetOrbitalPosition, "targetOrbitalPosition",SHIP:ORBIT:BODY:POSITION).
 
-    return deltaV.
+//5. Subtract 3 from 4 and take MAG to get separation distance.
+	LOCAL separationDistance IS (hohmannPositionVector - targetOrbitalPosition):MAG.
+	return separationDistance.
 }
 
 //Warning, this function assumes the two vessels are currently orbiting the same body.
