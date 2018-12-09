@@ -126,8 +126,10 @@ function suicideBurn {
 }
 //This function assumes that you have already performed an inclination change and the targetVessel Is in the
 //same plane as sourceVessel.
+//ThrottleController Parameter is expected to be a delegate bindable to a desiredApoapsis before execution.
 function hohmannTransfer {
 	parameter targetOrbital.
+	parameter throttleController IS matchApoapsisThrottleController@:bind(lexicon()).
 
 	//1. Calculate Transfer Time.
 	PRINT "Calculating Hohmann Transfer Time.  This may take up to 30 seconds.".
@@ -152,8 +154,7 @@ function hohmannTransfer {
 	ADD myNode.
 
 	//5. Execute Maneuver
-	LOCAL state IS lexicon().
-	LOCAL controller IS matchApoapsisThrottleController@:bind(desiredApoapsis):bind(state).
+	LOCAL controller IS throttleController:bind(desiredApoapsis).
 
 	executeNextManeuverWithController(controller).
 	shortInfo("Hohmann Transfer Complete").
@@ -199,9 +200,20 @@ function getHohmannTransferTime {
 
 	PRINT "Closest Calculated Separation Distance: " + separationDistance.
 
+	//Confirm That we haven't already missed our hohmann Transfer Window for this orbit.
+	//2. Calculate Burn Amount.
+	LOCAL transferDeltaV IS getHohmannTransferDeltaV(targetOrbital, transferTime).
+	LOCAL burnDuration IS calculateHalfBurnDuration(transferDeltaV).
+//	PRINT "Delta V: " + transferDeltaV.
+//	PRINT "Half Butn Duration: " + burnDuration.
+
 	//This is hardcoded...
 	IF separationDistance < 1000 {
-		return transferTime.
+		IF TIME:SECONDS + burnDuration > transferTime {
+			PRINT "Burn Window Missed For this Orbit.  Calculating beginning With Next Orbit".
+		} ELSE {
+			return transferTime.
+		}
 	}
 
 	return getHohmannTransferTime(targetOrbital,startTime+SHIP:ORBIT:PERIOD).
@@ -691,13 +703,13 @@ function rendevousBurn {
 //Furthermore, a smarter algorithm for the inclination burn may help accomplish the plane change with 1 burn and remove
 //the need to recurse.
 function matchInclination {
-	parameter targetVessel.
+	parameter targetOrbital.
 
-	Local relativeInc Is relativeInclination(targetVessel:ORBIT).
+	Local relativeInc Is relativeInclination(targetOrbital:ORBIT).
 
 	if (relativeInc < 0.001) {
 		PRINT "Inclination Change Complete.".
-		PRINT "Final Relative Inclination: " + relativeInclination(targetVessel:ORBIT).
+		PRINT "Final Relative Inclination: " + relativeInclination(targetOrbital:ORBIT).
 		return.
 	}
 
@@ -723,7 +735,7 @@ function matchInclination {
 		SET shipOrbitalPosition TO SHIP:ORBIT:BODY:ORBIT:POSITION.
 	}
 
-	Local timeToBurn Is timeToInclinationBurn(targetVessel).
+	Local timeToBurn Is timeToInclinationBurn(targetOrbital).
 
 	IF (timeToBurn - 10 > TIME:SECONDS) {
         WARPTO(timeToBurn - 10).
@@ -734,10 +746,10 @@ function matchInclination {
 //		Print "Time to Burn: " + (timeToBurn - TIME:SECONDS).
 	}
 
-	inclinationBurn(targetVessel).
+	inclinationBurn(targetOrbital).
 
 	//We are recursing as our algorithm isn't quite good enough yet.
-	matchInclination(targetVessel).
+	matchInclination(targetOrbital).
 }
 
 function inclinationBurn {
