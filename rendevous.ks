@@ -95,15 +95,15 @@ function finalApproach {
     SET NAVMODE TO "Target".
     SET SASMODE TO "Retrograde".
 
-    UNTIL (VANG(sourceVessel:Facing:Forevector, relativeVelocity(targetVessel, sourceVessel)) < 0.1) {
-        CLEARSCREEN.
-        CLEARVECDRAWS().
+    UNTIL (VANG(sourceVessel:Facing:Forevector, -relativeVelocity(targetVessel, sourceVessel)) < 0.1) {
+//        CLEARSCREEN.
+//        CLEARVECDRAWS().
 
         Local relVelocity IS relativeVelocity(targetVessel, sourceVessel).
 
 //        drawVector(relVelocity, "Relative Velocity").
-        PRINT "Relative Velocity: " + relVelocity:MAG.
-        Print "Angle: " + VANG(sourceVessel:Facing:Forevector, relativeVelocity(targetVessel, sourceVessel)).
+//        PRINT "Relative Velocity: " + relVelocity:MAG.
+//        Print "Angle: " + VANG(sourceVessel:Facing:Forevector, -relativeVelocity(targetVessel, sourceVessel)).
 
         WAIT 0.01.
     }
@@ -115,20 +115,37 @@ function finalApproach {
     Local minSeparationDistance IS MAX(30, separationDistance).//Don't come closer than 30 meters.
 
     UNTIL FALSE {
-        CLEARSCREEN.
-        CLEARVECDRAWS().
+//        CLEARSCREEN.
+//        CLEARVECDRAWS().
         Local relVelocity IS relativeVelocity(targetVessel, sourceVessel).
 
         Local suicideBurnTime IS calculateBurnDuration(relVelocity:MAG).
 
-        Local finalSeparationDistance IS separationDistanceAtTime(sourceVessel, targetVessel, TIME:SECONDS + suicideBurnTime).
+        LOCAL a is relVelocity:MAG/suicideBurnTime.
+        LOCAL d IS targetVessel:POSITION.
+        LOCAL theta IS VANG(relVelocity,d).
+        LOCAL r IS d*cos(theta).
 
-        Print "Suicide Burn Time: " + suicideBurnTime.
-        Print "Separation Distance: " + finalSeparationDistance.
-        //TODO: Fudge factor for when we aren't going to come within 50 meters of the station, to ensure we burn at the appropriate time.
-        if ( finalSeparationDistance < minSeparationDistance + 1) {
+        Local suicideTravelDistance IS -0.5*a*(suicideBurnTime*suicideBurnTime) + relVelocity:MAG*suicideBurnTime.
+        LOCAL travelVector IS relVelocity:NORMALIZED*suicideTravelDistance.
+        Local finalSeparationDistance IS d - travelVector.
+
+//        Print "Suicide Burn Time: " + suicideBurnTime.
+//        Print "a: " + a.
+//        PRINT "Distance To Target: " + d:MAG.
+//        PRINT "Remaining Travel Distance: " + r.
+//        Print "Travel Distance: " + suicideTravelDistance.
+//        Print "Final Separation Distance: " + finalSeparationDistance:MAG.
+
+//        drawVector(d, "Position").
+//        drawVector(-finalSeparationDistance, "Final", d).
+//        drawVector(travelVector, "Travel").
+
+        //TODO: Fudge factor for when we aren't going to come within 30 meters of the station, to ensure we burn at the appropriate time.
+        if ( finalSeparationDistance:MAG < minSeparationDistance + 1) {
             BREAK.
         }
+        WAIT 0.01.
     }
 
     shortInfo("Executing Suicide Burn.").
@@ -977,7 +994,7 @@ function relativeVelocity {
     parameter targetVessel.
     parameter sourceVessel IS SHIP.
 
-    return targetVessel:Orbit:Velocity:Orbit - sourceVessel:Orbit:Velocity:Orbit.
+    return sourceVessel:Orbit:Velocity:Orbit - targetVessel:Orbit:Velocity:Orbit.
 }
 
 //Warning, this function assumes the two vessels are currently orbiting the same body.
