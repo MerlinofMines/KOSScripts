@@ -197,6 +197,9 @@ function addMissionTaskButtons {
     Local rendevousTab IS addTab(rendevousOptions, "Rendevous", TRUE).
     rendevousPanel(rendevousTab).
 
+    LOCAL encounterTab is addTab(rendevousOptions, "Encounter", TRUE).
+    encounterPanel(encounterTab).
+
     //Docking Category
     Local dockingCategory IS addTab(taskCategories, "Docking", FALSE).
     Local dockingOptions IS addTabWidget(dockingCategory, TRUE).
@@ -210,6 +213,9 @@ function addMissionTaskButtons {
 
     LOCAL circularizeAtApoapsisTab IS addTab(orbitOptions, "Circularize At Apoapsis", TRUE).
     circularizeAtApoapsisPanel(circularizeAtApoapsisTab).
+
+    LOCAL circularizeAtPeriapsisTab IS addTab(orbitOptions, "Circularize At Periapsis", TRUE).
+    circularizeAtPeriapsisPanel(circularizeAtPeriapsisTab).
 
     LOCAL circularizeProgradeTab IS addTab(orbitOptions, "Circularize Prograde", TRUE).
     circularizeProgradePanel(circularizeProgradeTab).
@@ -420,6 +426,45 @@ function rendevousPanel {
     }.
 }
 
+function encounterTask {
+    parameter encounterBody.
+    parameter captureRadius.
+
+    Local delegate IS encounter@:bind(encounterBody):bind(captureRadius).
+    return getTask("Encounter with " + encounterBody:NAME+" @ " + captureRadius +"m", delegate).
+}
+
+function encounterPanel {
+    parameter panel.
+
+    LOCAL label IS panel:ADDLABEL("Encounter").
+    LOCAL popup is panel:addPopupMenu().
+
+    LIST BODIES IN targets.
+
+    for option IN targets {
+        popup:addoption(option).
+    }
+
+    LOCAL infoLabel IS panel:ADDLABEL("Capture Radius:").
+    LOCAL captureRadiusField IS panel:ADDTEXTFIELD("").
+
+    Local encounterButton IS panel:ADDBUTTON("Encounter").
+
+    SET encounterButton:ONCLICK TO {
+        LOCAL encounterBody IS popup:VALUE.
+        LOCAL captureRadius IS captureRadiusField:TEXT:TONUMBER(-1).
+
+        IF (captureRadius < 0 OR captureRadius > encounterBody:SOIRADIUS) {
+            SET infoLabel:TEXT TO "Please Enter a valid capture radius:".
+        } ELSE {
+            SET infoLabel:TEXT TO "Capture Radius:".
+                addMissionTask(encounterTask(encounterBody,captureRadius)).
+                activateButton(encounterButton).
+        }
+    }.
+}
+
 function matchInclinationTask {
     parameter targetVessel.
     Local delegate IS matchInclination@:bind(targetVessel).
@@ -522,6 +567,16 @@ function circularizeAtApoapsisPanel {
     }.
 }
 
+function circularizeAtPeriapsisPanel {
+    parameter panel.
+
+    LOCAL circularizeButton IS panel:ADDBUTTON("Circularize At Periapsis").
+    SET circularizeButton:ONCLICK TO {
+        addMissionTask(circularizeAtPeriapsisTask()).
+        activateButton(circularizeButton).
+    }.
+}
+
 function circularizeProgradePanel {
     parameter panel.
 
@@ -607,7 +662,14 @@ function circularizeProgradePanel {
 
 function circularizeAtApoapsisTask {
     LOCAL taskName IS "Circularize at Apoapsis".
-    LOCAL taskDelegate IS circularizeMaintainingApoapsis@:bind(SHIP).
+    LOCAL taskDelegate IS circularizeMaintainingApoapsis@.
+
+    return getTask(taskName, taskDelegate).
+}
+
+function circularizeAtPeriapsisTask {
+    LOCAL taskName IS "Circularize at Periapsis".
+    LOCAL taskDelegate IS circularizeMaintainingPeriapsis@.
 
     return getTask(taskName, taskDelegate).
 }

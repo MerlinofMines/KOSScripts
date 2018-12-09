@@ -5,6 +5,36 @@ RUNONCEPATH("0:/orbital_information.ks").
 RUNONCEPATH("0:/orbital_maneuvers.ks").
 RUNONCEPATH("0:/input.ks").
 
+function encounter {
+    parameter targetBody.
+    parameter targetCaptureRadius.
+
+    longInfo("Beginning Encounter with " + targetBody).
+
+    SET TARGET TO targetBody.
+
+
+    info("Matching Target Inclination").
+    matchInclination(targetBody).
+
+    info("Circularing Orbit").
+    circularizeMaintainingApoapsis().
+
+    info("Initiating Hohmann Transfer").
+    LOCAL throttleController IS encounterThrottleController@:bind(lexicon()):bind(targetBody):bind(targetCaptureRadius).
+    hohmannTransfer(targetBody, throttleController).
+
+    info("Warping to Target Sphere of Influence").
+//    WARPTO( ETA:TRANSITION + TIME:SECONDS).
+
+    WAIT UNTIL SHIP:ORBIT:BODY = targetBody.
+
+    info("Initiating Capture").
+    circularizeMaintainingPeriapsis().
+
+    info("Encounter Complete").
+}
+
 function rendevousWithPlan {
 	LIST Targets IN targets.
 

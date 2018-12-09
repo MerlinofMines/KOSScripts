@@ -3,18 +3,33 @@ RUNONCEPATH("0:/maneuver.ks").
 RUNONCEPATH("0:/orbital_information.ks").
 
 function circularizeMaintainingApoapsis {
-	parameter sourceVessel IS SHIP.
-
 	PRINT "Circularizing Maintaining Apoapsis".
 
-	if(sourceVessel:ORBIT:ECCENTRICITY < 0.001) {
+	if(SHIP:ORBIT:ECCENTRICITY < 0.001) {
 		PRINT "Orbit is already circular. Skipping circularization burn.".
 		return.
 	}
 
 	shortInfo("Calculating Apoapsis Circularization Burn").
-	Local nd Is getApoapsisCircularizationBurnManeuverNode(sourceVessel).
+	Local nd Is getApoapsisCircularizationBurnManeuverNode().
+	Add nd.
 
+	shortInfo("Executing Circularization Burn").
+	executeNextManeuver().
+
+	shortInfo("Circularization Burn Complete").
+}
+
+function circularizeMaintainingPeriapsis {
+	PRINT "Circularizing Maintaining Periapsis".
+
+	if(SHIP:ORBIT:ECCENTRICITY < 0.001) {
+		PRINT "Orbit is already circular. Skipping circularization burn.".
+		return.
+	}
+
+	shortInfo("Calculating Periapsis Circularization Burn").
+	Local nd Is getPeriapsisCircularizationBurnManeuverNode().
 	Add nd.
 
 	shortInfo("Executing Circularization Burn").
@@ -219,28 +234,49 @@ function circularizeMaintainingPrograde {
 }
 
 function getApoapsisCircularizationBurnManeuverNode {
-	parameter sourceVessel IS SHIP.
-
-	Local timeAtApoapsis Is timeAtNextApoapsis(sourceVessel).
-	Local deltaV Is getApoapsisCircularizationBurnDeltaV(sourceVessel).
+	Local timeAtApoapsis Is ETA:APOAPSIS + TIME:SECONDS.
+	Local deltaV Is getApoapsisCircularizationBurnDeltaV().
 
 	//create node
 	Local nd Is node(timeAtApoapsis, 0, 0, deltaV).
 	return nd.
 }
 
+function getPeriapsisCircularizationBurnManeuverNode {
+	Local timeAtPeriapsis Is ETA:PERIAPSIS + TIME:SECONDS.
+	Local deltaV Is getPeriapsisCircularizationBurnDeltaV().
+
+	//create node
+	Local nd Is node(timeAtPeriapsis, 0, 0, -deltaV).
+	return nd.
+}
+
 function getApoapsisCircularizationBurnDeltaV {
-	parameter sourceVessel IS SHIP.
-
-	Local timeAtApoapsis Is timeAtNextApoapsis(sourceVessel).
-	Local mu Is sourceVessel:Orbit:Body:Mu.
-	Local vi Is VelocityAt(sourceVessel, timeAtApoapsis):Orbit:MAG.
-	Local r Is positionVectorAt(sourceVessel, timeAtApoapsis):MAG.
-
+	Local timeAtPeriapsis Is ETA:PERIAPSIS + TIME:SECONDS.
+	Local mu Is SHIP:Orbit:Body:Mu.
+	Local vi Is VelocityAt(SHIP, timeAtApoapsis):Orbit:MAG.
+	Local r Is positionVectorAt(SHIP, timeAtApoapsis):MAG.
 	Local vf Is sqrt(mu /r).
 
 	// calculate deltaV
 	Local deltaV Is vf - vi.
+	return deltaV.
+}
+
+function getPeriapsisCircularizationBurnDeltaV {
+	Local timeAtPeriapsis Is ETA:PERIAPSIS + TIME:SECONDS.
+	Local mu Is SHIP:Orbit:Body:Mu.
+	Local vi Is VelocityAt(SHIP, timeAtPeriapsis):Orbit:MAG.
+	Local r Is positionVectorAt(SHIP, timeAtPeriapsis):MAG.
+
+	PRINT "Orbiting Body: " + SHIP:ORBIT:BODY.
+	PRINT "Initial Velocity: " + vi.
+	PRINT "Radius: " + r.
+
+	Local vf Is sqrt(mu/r).
+
+	// calculate deltaV
+	Local deltaV Is vi - vf.
 	return deltaV.
 }
 
