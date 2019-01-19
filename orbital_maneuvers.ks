@@ -131,7 +131,7 @@ function circularizeMaintainingPrograde {
 	//Step 5, iteratively determine if/when we need to fire the primary, or fire primary and secondary, based on current case.
 	UNTIL FALSE {
 		CLEARSCREEN.
-		LOCAL circularizationDeltaV IS getApoapsisCircularizationBurnDeltaV(SHIP).
+		LOCAL circularizationDeltaV IS getApoapsisCircularizationBurnDeltaV().
 		LOCAL primaryBurnDuration IS calculateBurnDurationFromEngineThrust(ispPrimary, maxThrustPrimary, circularizationDeltaV).
 //		LOCAL secondaryBurnDuration IS calculateBurnDurationFromEngineThrust(ispSecondary, maxThrustSecondary, circularizationDeltaV).
 		LOCAL combinedBurnDuration IS calculateBurnDurationFromEngineThrust(ispCombined, maxThrustCombined, circularizationDeltaV).
@@ -252,7 +252,7 @@ function getPeriapsisCircularizationBurnManeuverNode {
 }
 
 function getApoapsisCircularizationBurnDeltaV {
-	Local timeAtPeriapsis Is ETA:PERIAPSIS + TIME:SECONDS.
+	Local timeAtApoapsis Is ETA:APOAPSIS + TIME:SECONDS.
 	Local mu Is SHIP:Orbit:Body:Mu.
 	Local vi Is VelocityAt(SHIP, timeAtApoapsis):Orbit:MAG.
 	Local r Is positionVectorAt(SHIP, timeAtApoapsis):MAG.
