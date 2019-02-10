@@ -1,4 +1,4 @@
-RUNONCEPATH("0:/missionControl.ks").
+RUNONCEPATH("0:/missionControl/missionControl.ks").
 
 CLEARSCREEN.
 openMissionControl().
