@@ -1,29 +1,3 @@
-
-function changeApoapsis {
-    parameter newAltitude.
-
-    local mu is body:mu.
-    local br is body:radius.
-
-    // present orbit properties
-    local vom is velocity:orbit:mag.               // actual velocity
-    local r is br + altitude.                      // actual distance to body
-    local ra is br + periapsis.                     // radius at burn periapsis
-    local v1 is sqrt( vom^2 + 2*mu*(1/ra - 1/r) ). // velocity at burn periapsis
-
-    local sma1 is (periapsis + 2*br + apoapsis)/2. // semi major axis present orbit
-
-    // future orbit properties
-    local r2 is br + periapsis.               // distance after burn at periapsis
-    local sma2 is (periapsis + 2*br + newAltitude)/2. // semi major axis target orbit
-    local v2 is sqrt( vom^2 + (mu * (2/r2 - 2/r + 1/sma1 - 1/sma2 ) ) ).
-
-    // create node
-    local deltav is v2 - v1.
-    local nd is node(time:seconds + eta:periapsis, 0, 0, deltav).
-    return nd.
-}
-
 function executeNextManeuver {
     SET nd TO NEXTNODE.
     set dv0 to nd:deltav.
@@ -187,63 +161,6 @@ function encounterThrottleController {
 
     //Time to calculate new throttle.
     LOCAL newThrottle IS min(1,2*(desiredPe+0.1-newPe)/(peChangeRate)) * previousThrottle.
-    SET previousState["H"] TO newThrottle.
-    return newThrottle.
-}
-
-
-function matchApoapsisThrottleController {
-    parameter previousState.
-    parameter desiredAp.
-
-    //First Iteration, set up state and return 100%.
-    IF NOT previousState:HASKEY("A") {
-        SET previousState["A"] TO SHIP:ORBIT:APOAPSIS.
-        SET previousState["T"] TO TIME:SECONDS.
-        SET previousState["H"] TO 1.
-        WAIT 0.01.
-        return 1.
-    }
-
-    LOCAL previousAp IS previousState["A"].
-    LOCAL previousTime IS previousState["T"].
-    LOCAL previousThrottle IS previousState["H"].
-
-    LOCAL newAp IS SHIP:ORBIT:APOAPSIS.
-    LOCAL newTime IS TIME:SECONDS.
-
-    LOCAL apChange IS newAp - previousAp.
-    LOCAL timeChange IS newTime - previousTime.
-    LOCAL apChangeRate IS apChange/timeChange.
-
-//    PRINT "Previous Throttle: " + previousThrottle.
-//    PRINT "Previous Ap: " + previousAp.
-
-//    PRINT "Desired Ap: " + desiredAp.
-//    PRINT "Time Change: " + timeChange.
-    PRINT "Apoapsis change rate: " + apChangeRate.
-
-    IF SHIP:ORBIT:APOAPSIS > desiredAp RETURN -1.
-
-//    PRINT "Desired Apoapsis Gap: " + abs(1 - (SHIP:ORBIT:APOAPSIS/desiredAp)).
-    //IF we're stupid close to our target orbit, and our change rate is also low, call it quits.
-    IF abs(1 - (SHIP:ORBIT:APOAPSIS/desiredAp)) < 0.001 AND apChangeRate < 0.1 {
-        RETURN -1.
-    }
-
-    SET previousState["A"] TO newAp.
-    SET previousState["T"] TO newTime.
-
-    //Need to wait a non-zero amount of time to allow for an actual "burn".
-    WAIT 0.01.
-
-    //Still have >1 burn time, previous throttle is ok.
-    IF newAp + apChangeRate < desiredAp {
-        return previousThrottle.
-    }
-
-    //Time to calculate new throttle.
-    LOCAL newThrottle IS min(1,2*(desiredAp+0.1-newAp)/(apChangeRate)) * previousThrottle.
     SET previousState["H"] TO newThrottle.
     return newThrottle.
 }

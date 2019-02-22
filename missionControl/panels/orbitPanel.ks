@@ -9,6 +9,9 @@ function orbitTab {
     Local orbitCategory IS addTab(taskCategories, "Orbit", FALSE).
     Local orbitOptions IS addTabWidget(orbitCategory, TRUE).
 
+    LOCAL changeOrbitalRadiusTab IS addTab(orbitOptions, "Change Orbital Radius", TRUE).
+    changeOrbitalRadiusPanel(changeOrbitalRadiusTab).
+
     LOCAL circularizeAtApoapsisTab IS addTab(orbitOptions, "Circularize At Apoapsis", TRUE).
     circularizeAtApoapsisPanel(circularizeAtApoapsisTab).
 
@@ -23,6 +26,63 @@ function orbitTab {
 }
 
 //Panels
+function changeOrbitalRadiusPanel {
+    parameter panel.
+
+    LOCAL infoLabel IS panel:ADDLABEL("Orbital Radius:").
+    LOCAL orbitField IS panel:ADDTEXTFIELD("").
+
+    Local choices IS panel:ADDHLAYOUT().
+
+    Local apoapsisChoice IS choices:ADDRADIOBUTTON("Apoapsis", TRUE).
+    Local periapsisChoice IS choices:ADDRADIOBUTTON("Periapsis", FALSE).
+
+    Local changeRadiusButton IS panel:ADDBUTTON("Change Apoapsis").
+
+    LOCAL orbitalChangeTask IS changeApoapsisTask@.
+
+    SET apoapsisChoice:ONCLICK TO {
+        SET orbitalChangeTask TO changeApoapsisTask@.
+        SET changeRadiusButton:TEXT TO "Change Apoapsis".
+    }.
+
+    SET periapsisChoice:ONCLICK TO {
+        SET orbitalChangeTask TO changePeriapsisTask@.
+        SET changeRadiusButton:TEXT TO "Change Periapsis".
+    }.
+
+    SET changeRadiusButton:ONCLICK TO {
+        LOCAL orbitalRadius IS orbitField:TEXT:TONUMBER(-1).
+
+        IF (orbitalRadius < 0) {
+            SET infoLabel:TEXT TO "Please Enter a valid orbital radius:".
+        } ELSE {
+            SET infoLabel:TEXT TO "Orbital Radius:".
+            addMissionTask(orbitalChangeTask(orbitalRadius)).
+            activateButton(changeRadiusButton).
+            SET orbitField:TEXT TO "".
+        }
+    }.
+}
+
+function changeApoapsisTask {
+    parameter desiredRadius.
+
+    LOCAL taskName IS "Change Apoapsis To " + desiredRadius.
+    LOCAL taskDelegate IS changeOrbitalRadiusAtPeriapsis@:bind(desiredRadius).
+
+    return getTask(taskName, taskDelegate).
+}
+
+function changePeriapsisTask {
+    parameter desiredRadius.
+
+    LOCAL taskName IS "Change Periapsis To " + desiredRadius.
+    LOCAL taskDelegate IS changeOrbitalRadiusAtApoapsis@:bind(desiredRadius).
+
+    return getTask(taskName, taskDelegate).
+}
+
 function circularizeAtApoapsisPanel {
     parameter panel.
 

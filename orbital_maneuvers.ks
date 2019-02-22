@@ -2,6 +2,132 @@ RUNONCEPATH("0:/output.ks").
 RUNONCEPATH("0:/maneuver.ks").
 RUNONCEPATH("0:/orbital_information.ks").
 
+function changeOrbitalRadiusAtApoapsis {
+	parameter desiredRadius.
+
+	LOCAL deltaV IS getDeltaVForOrbitRadiusChangeAtApoapsis(desiredRadius).
+
+	//create node
+	Local nd Is node(timeAtNextApoapsis(), 0, 0, deltaV).
+	add nd.
+
+	//execute
+	LOCAL throttleController IS matchPeriapsisThrottleController@:bind(lexicon(),desiredRadius).
+	executeNextManeuverWithController(throttleController).
+
+	REMOVE nd.
+}
+
+function changeOrbitalRadiusAtPeriapsis {
+	parameter desiredRadius.
+
+	LOCAL deltaV IS getDeltaVForOrbitRadiusChangeAtPeriapsis(desiredRadius).
+
+	//create node
+	Local nd Is node(timeAtNextPeriapsis(), 0, 0, deltaV).
+	add nd.
+
+	//TODO: IT's incorrect to assume that the right thing is the apoapsis.  Depending on the burn, the thing we should
+	//be watching might be the *new* periapsis.  A determination of which needs to be done based on the expected new orbit.
+	//Then, we also need to allow ourselves to burn through the transition from AP->PE, if needed, before we start watching
+	//This is likely done using a hybrid approach. (matchOrbitalRadiusWithManeuverThrottleController)
+	//execute
+	LOCAL throttleController IS matchApoapsisThrottleController@:bind(lexicon(),desiredRadius).
+	executeNextManeuverWithController(throttleController).
+
+	REMOVE nd.
+}
+
+
+function matchOrbitalRadiusWithManeuverThrottleController {
+	parameter previousState.
+	parameter desiredRadius.
+	parameter orbitalRadiusSupplier.
+	parameter nd. //Maneuver Node
+	parameter dv0.//Original vector of maneuver
+
+	//If the lexicon isn't empty, or we're below 5% remaining dV, then we're fine tuning
+	IF previousState:LENGTH > 0 OR (nd:deltav:mag/dv0:mag) < 0.05 {
+		return matchOrbitalRadiusThrottleController(previousState, desiredRadius, orbitalRadiusSupplier).
+	} else {
+		return deltaVRemainingThrottleController(nd, dv0).
+	}
+}
+
+function matchApoapsisThrottleController {
+	parameter previousState.
+	parameter desiredRadius.
+	LOCAL orbitalRadiusSupplier IS {return SHIP:ORBIT:APOAPSIS.}.
+	return matchOrbitalRadiusThrottleController(previousState, desiredRadius, orbitalRadiusSupplier).
+}
+
+function matchPeriapsisThrottleController {
+	parameter previousState.
+	parameter desiredRadius.
+	LOCAL orbitalRadiusSupplier IS {return SHIP:ORBIT:PERIAPSIS.}.
+	return matchOrbitalRadiusThrottleController(previousState, desiredRadius, orbitalRadiusSupplier).
+}
+
+function matchOrbitalRadiusThrottleController {
+	parameter previousState.
+	parameter desiredRadius.
+	parameter orbitalRadiusSupplier.
+
+	//First Iteration, set up state and return 100%.
+	IF NOT previousState:HASKEY("R") {
+		SET previousState["R"] TO orbitalRadiusSupplier().
+		SET previousState["T"] TO TIME:SECONDS.
+		SET previousState["H"] TO 1.
+		WAIT 0.1.//We wait a little longer on the first iteration, as we are expecting it to take time for us to start burning.
+		return 1.
+	}
+
+	LOCAL previousRadius IS previousState["R"].
+	LOCAL previousTime IS previousState["T"].
+	LOCAL previousThrottle IS previousState["H"].
+
+	LOCAL newRadius IS orbitalRadiusSupplier().
+	LOCAL newTime IS TIME:SECONDS.
+
+	LOCAL radiusChange IS newRadius - previousRadius.
+	LOCAL timeChange IS newTime - previousTime.
+	LOCAL radiusChangeRate IS radiusChange/timeChange.
+
+	PRINT "Old Radius: " + previousRadius.
+	PRINT "New Radius: " + newRadius.
+	PRINT "Desired Radius: " + desiredRadius.
+	PRINT "Radius change rate: " + radiusChangeRate.
+
+
+	LOCAL timeToDesiredRadius IS (desiredRadius-newRadius)/(radiusChangeRate).
+
+	PRINT "timeToDesiredRadius: " + timeToDesiredRadius.
+
+	//If we're past our desiredApoapsis, call it quits
+	IF timeToDesiredRadius <= 0 RETURN -1.
+
+	//IF we're stupid close to our target orbit, and our change rate is also low, call it quits.
+	IF abs(1 - (orbitalRadiusSupplier()/desiredRadius)) < 0.001 AND abs(radiusChangeRate) < 0.1 {
+		RETURN -1.
+	}
+
+	SET previousState["R"] TO newRadius.
+	SET previousState["T"] TO newTime.
+
+	//Need to wait a non-zero amount of time to allow for an actual "burn".
+	WAIT 0.01.
+
+	//Still have >1 burn time, previous throttle is ok.
+	IF timeToDesiredRadius > 1 {
+		return previousThrottle.
+	}
+
+	//Time to calculate new throttle.
+	LOCAL newThrottle IS min(1,2*timeToDesiredRadius) * previousThrottle.
+	SET previousState["H"] TO newThrottle.
+	return newThrottle.
+}
+
 function circularizeMaintainingApoapsis {
 	PRINT "Circularizing Maintaining Apoapsis".
 
@@ -249,6 +375,49 @@ function getPeriapsisCircularizationBurnManeuverNode {
 	//create node
 	Local nd Is node(timeAtPeriapsis, 0, 0, -deltaV).
 	return nd.
+}
+
+function getDeltaVForOrbitRadiusChangeAtApoapsis {
+	parameter desiredRadius.
+
+	LOCAL r IS SHIP:ORBIT:BODY:RADIUS.
+	LOCAL a IS (SHIP:ORBIT:APOAPSIS + 2*r + desiredRadius)/2.
+	LOCAL mu IS SHIP:ORBIT:BODY:MU.
+
+	LOCAL vi IS visViva(SHIP:ORBIT:SEMIMAJORAXIS, SHIP:ORBIT:APOAPSIS + r, mu).
+	LOCAL vf IS visViva(a, SHIP:ORBIT:APOAPSIS + r, mu).
+
+	return vf - vi.
+}
+
+function getDeltaVForOrbitRadiusChangeAtPeriapsis {
+	parameter desiredRadius.
+
+	LOCAL r IS SHIP:ORBIT:BODY:RADIUS.
+	LOCAL a IS (SHIP:ORBIT:PERIAPSIS + 2*r + desiredRadius)/2.
+	LOCAL mu IS SHIP:ORBIT:BODY:MU.
+
+	LOCAL vi IS visViva(SHIP:ORBIT:SEMIMAJORAXIS, SHIP:ORBIT:PERIAPSIS + r, mu).
+	LOCAL vf IS visViva(a, SHIP:ORBIT:PERIAPSIS + r, mu).
+
+	PRINT "Axis: " + SHIP:ORBIT:SEMIMAJORAXIS.
+	PRINT "Periapsis: " + SHIP:ORBIT:PERIAPSIS.
+
+	PRINT "vi: " + vi.
+	PRINT "vf: " + vf.
+
+	PRINT "Velocity at periapsis: " + VELOCITYAT(SHIP,timeAtNextPeriapsis()):ORBIT:MAG.
+
+	return vf - vi.
+}
+
+//https://en.wikipedia.org/wiki/Vis-viva_equation
+function visViva {
+	parameter a.
+	parameter r.
+	parameter mu.
+
+	return sqrt(mu * ( (2 / r) - ( 1 / a ))).
 }
 
 function getApoapsisCircularizationBurnDeltaV {
