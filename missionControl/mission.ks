@@ -1,3 +1,5 @@
+RUNONCEPATH("0:/output.ks").
+
 DECLARE GLOBAL OVERVIEW_TAB TO "".
 DECLARE GLOBAL MISSION_TASK_LIST TO list().
 
@@ -112,7 +114,7 @@ function executeMission {
         Local taskName IS getTaskName(task).
         Local taskDelegate IS getTaskDelegate(task).
 
-        PRINT "Executing Task: " + taskName.
+        shortInfo(taskName).
         taskDelegate().
     }
 }

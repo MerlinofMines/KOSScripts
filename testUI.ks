@@ -1,11 +1,7 @@
 CLEARSCREEN.
 
-RUNONCEPATH("0:/missionControl/missionControl.ks").
-//RUNONCEPATH("0:/ui/engineWidget.ks").
-
-openMissionControl().
-
-
+RUNPATH("0:/missionControl/missionControl.ks").
+startMissionControl().
 
 function engineTest {
 	SET isLaunchClicked TO FALSE.
