@@ -1,2 +1,2 @@
-RUNONCEPATH("0:/missionControl/missionControl.ks").
-startMissionControl().
+RUNONCEPATH("0:/missionControl.ks").
+openMissionControl().

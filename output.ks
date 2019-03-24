@@ -53,7 +53,7 @@ function output {
     Print text.
     HUDTEXT( text,
          duration,
-         2,
+         1,
          18,
          color,
          FALSE).
