@@ -18,9 +18,9 @@ function sstoLaunchPanel {
 
     engineChoicePanel(panel).
 
-    LOCAL circularizeButton IS panel:ADDBUTTON("Launch").
+    LOCAL launchButton IS panel:ADDBUTTON("Launch").
 
-    SET circularizeButton:ONCLICK TO {
+    SET launchButton:ONCLICK TO {
         LOCAL primaryEngines IS getPrimaryEngines().
         LOCAL secondaryEngines IS getSecondaryEngines().
 

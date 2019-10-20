@@ -87,8 +87,9 @@ function addMissionTaskButton {
     parameter taskTab.
     parameter taskName.
     parameter taskDelegate.
+    parameter buttonLabel IS taskName.
 
-    LOCAL taskButton IS taskTab:ADDBUTTON(taskName).
+    LOCAL taskButton IS taskTab:ADDBUTTON(buttonLabel).
     SET taskButton:ONCLICK TO {
         addMissionTask(getTask(taskName, taskDelegate)).
         activateButton(taskButton).

@@ -1,5 +1,6 @@
 RUNONCEPATH("0:/ui/tab_widget.ks").
 RUNONCEPATH("0:/missionControl/mission.ks").
+RUNONCEPATH("0:/ui/engineWidget.ks").
 
 function systemsTab {
     parameter taskCategories.
@@ -27,8 +28,40 @@ function systemsTab {
     addMissionTaskButton(chutesTab, "Deploy Chutes", {CHUTES ON. WAIT 2.}).
     addMissionTaskButton(chutesTab, "Deply Chutes Safely", {CHUTESSAFE ON. WAIT 2.}).
 
+    Local enginesTab IS addTab(shipOptions, "Engines", TRUE).
+    engineTabPanel(enginesTab).
+
     Local agTab IS addTab(shipOptions, "Action Groups", TRUE).
     agTabPanel(agTab).
+}
+
+function engineTabPanel {
+    parameter panel.
+
+    LOCAL testButton IS panel:ADDBUTTON("Test").
+    SET testButton:ONCLICK TO activatePrimaryEnginesButtonHandler@:BIND(true).
+
+    LOCAL primaryEnginePanel IS panel:ADDVBOX().
+    LOCAL primaryEnginelabel IS primaryEnginePanel:ADDLABEL("Primary Engines").
+    SET primaryEnginelabel:STYLE:ALIGN TO "CENTER".
+
+    LOCAL activatePrimaryEnginesButton IS primaryEnginePanel:ADDBUTTON("Activate").
+    SET activatePrimaryEnginesButton:ONCLICK TO activatePrimaryEnginesButtonHandler@:BIND(true).
+
+    LOCAL deactivatePrimaryEnginesButton IS primaryEnginePanel:ADDBUTTON("Deactivate").
+    SET deactivatePrimaryEnginesButton:ONCLICK TO activatePrimaryEnginesButtonHandler@:BIND(false).
+
+    LOCAL secondaryEnginePanel IS panel:ADDVBOX().
+    LOCAL secondaryEngineLabel IS secondaryEnginePanel:ADDLABEL("Secondary Engines").
+    SET secondaryEngineLabel:STYLE:ALIGN TO "CENTER".
+
+    LOCAL activateSecondaryEnginesButton IS secondaryEnginePanel:ADDBUTTON("Activate").
+    SET activateSecondaryEnginesButton:ONCLICK TO activateSecondaryEnginesButtonHandler@:BIND(true).
+
+    LOCAL deactivateSecondaryEnginesButton IS secondaryEnginePanel:ADDBUTTON("Deactivate").
+    SET deactivateSecondaryEnginesButton:ONCLICK TO activateSecondaryEnginesButtonHandler@:BIND(false).
+
+//    engineChoicePanel(panel).
 }
 
 function agTabPanel {
@@ -75,4 +108,59 @@ function agTabPanel {
     LOCAL ag10Panel IS scrollPanel:ADDHLAYOUT().
     addMissionTaskButton(ag10Panel, "AG10 On", {AG10 ON. WAIT 0.5.}).
     addMissionTaskButton(ag10Panel, "AG10 Off", {AG10 OFF. WAIT 0.5.}).
+}
+
+function activatePrimaryEnginesButtonHandler {
+    parameter activate IS FALSE.
+    activateEnginesButtonHandler(getPrimaryEngines(), activate).
+}
+
+function activateSecondaryEnginesButtonHandler {
+    parameter activate IS FALSE.
+    activateEnginesButtonHandler(getSecondaryEngines(), activate).
+}
+
+function activateEnginesButtonHandler {
+    parameter myEngines.
+    parameter activate IS FALSE.
+
+    IF myEngines:length = 0 {
+        return.
+    }
+
+    LOCAL activateText IS "Activate".
+    IF (NOT activate) {
+        SET activateText TO "Deactivate".
+    }
+
+    PRINT "Added Mission task to " + activateText + " the following engines:".
+
+    PRINT myEngines.
+
+    addMissionTask(getTask(activateText + " " + myEngines:length + " engines", activateEnginesTask@:BIND(myEngines):bind(activate))).
+}
+
+
+function activateEnginesTask {
+    parameter myEngines.
+    parameter activate IS FALSE.
+
+    PRINT myEngines.
+    PRINT "Activate: " + activate.
+    if (activate) {
+        PRINT "Activating the following Engines:".
+    } else {
+        PRINT "Deactivating the following Engines:".
+    }
+
+    FOR engine IN myEngines {
+        PRINT engine:NAME.
+        if(activate) {
+            engine:ACTIVATE().
+        } else {
+            engine:SHUTDOWN().
+        }
+    }
+
+    WAIT 1.
 }
