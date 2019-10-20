@@ -1,6 +1,7 @@
 RUNONCEPATH("0:/constants.ks").
 RUNONCEPATH("0:/input.ks").
 RUNONCEPATH("0:/ui/tab_widget.ks").
+RUNONCEPATH("0:/ui/engineWidget.ks").
 RUNONCEPATH("0:/missionControl/mission.ks").
 
 RUNONCEPATH("0:/missionControl/panels/dockingPanel.ks").
@@ -43,6 +44,16 @@ function addMissionTabs {
     SET OVERVIEW_TAB TO columns:ADDVBOX().
     SET OVERVIEW_TAB:STYLE:WIDTH TO 400.
     SET OVERVIEW_TAB:STYLE:HEIGHT TO 400.
+
+    LOCAL engineTab IS columns:ADDVBOX().
+    SET engineTab:STYLE:WIDTH to 400.
+    SET engineTab:STYLE:HEIGHT to 400.
+
+    LOCAL engineLabelTab IS engineTab:ADDLABEL("Engine Configuration").
+    SET engineLabelTab:STYLE:ALIGN TO "CENTER".
+
+    LOCAL engineConfigurationTab IS engineTab:ADDVBOX().
+    engineChoicePanel(engineConfigurationTab).
 
     LOCAL addTaskTab IS columns:ADDVBOX().
     SET addTaskTab:STYLE:WIDTH to 400.

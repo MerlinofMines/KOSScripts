@@ -16,8 +16,6 @@ function sstoTab {
 function sstoLaunchPanel {
     parameter panel.
 
-    engineChoicePanel(panel).
-
     LOCAL launchButton IS panel:ADDBUTTON("Launch").
 
     SET launchButton:ONCLICK TO {

@@ -60,8 +60,6 @@ function engineTabPanel {
 
     LOCAL deactivateSecondaryEnginesButton IS secondaryEnginePanel:ADDBUTTON("Deactivate").
     SET deactivateSecondaryEnginesButton:ONCLICK TO activateSecondaryEnginesButtonHandler@:BIND(false).
-
-//    engineChoicePanel(panel).
 }
 
 function agTabPanel {

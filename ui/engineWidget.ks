@@ -71,8 +71,7 @@ function refreshEnginePanel {
     SET unassignedEnginelabel:STYLE:ALIGN TO "CENTER".
 
     IF UNASSIGNED_ENGINES:EMPTY {
-        LOCAL nonelabel IS unassignedEnginePanel:ADDLABEL("None").
-        SET nonelabel:STYLE:ALIGN TO "CENTER".
+        SET unassignedEnginePanel:VISIBLE TO FALSE.
     }
 
     UNTIL NOT unassignedEngineIterator:NEXT {
