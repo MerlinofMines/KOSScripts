@@ -27,6 +27,8 @@ function openMissionControl {
 
     executeMission().
 
+    clearMissionTasks().
+
     PRINT "Mission Completed Successfully.".
 }
 
