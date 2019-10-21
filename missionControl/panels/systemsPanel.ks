@@ -1,6 +1,7 @@
 RUNONCEPATH("0:/ui/tab_widget.ks").
 RUNONCEPATH("0:/missionControl/mission.ks").
 RUNONCEPATH("0:/ui/engineWidget.ks").
+RUNONCEPATH("0:/systems/fairing.ks").
 
 function systemsTab {
     parameter taskCategories.
@@ -28,20 +29,46 @@ function systemsTab {
     addMissionTaskButton(chutesTab, "Deploy Chutes", {CHUTES ON. WAIT 2.}).
     addMissionTaskButton(chutesTab, "Deply Chutes Safely", {CHUTESSAFE ON. WAIT 2.}).
 
-    Local enginesTab IS addTab(shipOptions, "Engines", TRUE).
-    engineTabPanel(enginesTab).
+    fairingTabPanel(shipOptions).
+
+    engineTabPanel(shipOptions).
 
     Local agTab IS addTab(shipOptions, "Action Groups", TRUE).
     agTabPanel(agTab).
 }
 
+function fairingTabPanel {
+    parameter panel.
+
+    LOCAL fairings IS getFairings().
+
+    IF fairings:LENGTH = 0 return.
+
+    LOCAL fairingTab IS addTab(panel, "Fairings", TRUE).
+
+    LOCAL popup is fairingTab:addPopupMenu().
+    SET popup:OPTIONSUFFIX to "TITLE".
+
+    for option IN fairings {
+        popup:addoption(option).
+    }
+
+    Local executeButton IS fairingTab:ADDBUTTON("Deploy Fairing").
+    SET executeButton:ONCLICK TO {
+        addMissionTask(getTask("Deploy " + popup:VALUE:NAME + " Fairing", {
+            PRINT "Deploying " + popup:VALUE:NAME.
+            deployFairing(popup:VALUE).
+        })).
+        activateButton(executeButton).
+    }.
+}
+
 function engineTabPanel {
     parameter panel.
 
-    LOCAL testButton IS panel:ADDBUTTON("Test").
-    SET testButton:ONCLICK TO activatePrimaryEnginesButtonHandler@:BIND(true).
+    Local enginesTab IS addTab(panel, "Engines", TRUE).
 
-    LOCAL primaryEnginePanel IS panel:ADDVBOX().
+    LOCAL primaryEnginePanel IS enginesTab:ADDVBOX().
     LOCAL primaryEnginelabel IS primaryEnginePanel:ADDLABEL("Primary Engines").
     SET primaryEnginelabel:STYLE:ALIGN TO "CENTER".
 
@@ -51,7 +78,7 @@ function engineTabPanel {
     LOCAL deactivatePrimaryEnginesButton IS primaryEnginePanel:ADDBUTTON("Deactivate").
     SET deactivatePrimaryEnginesButton:ONCLICK TO activatePrimaryEnginesButtonHandler@:BIND(false).
 
-    LOCAL secondaryEnginePanel IS panel:ADDVBOX().
+    LOCAL secondaryEnginePanel IS enginesTab:ADDVBOX().
     LOCAL secondaryEngineLabel IS secondaryEnginePanel:ADDLABEL("Secondary Engines").
     SET secondaryEngineLabel:STYLE:ALIGN TO "CENTER".
 
