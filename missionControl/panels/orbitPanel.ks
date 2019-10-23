@@ -12,14 +12,10 @@ function orbitTab {
     LOCAL changeOrbitalRadiusTab IS addTab(orbitOptions, "Change Orbital Radius", TRUE).
     changeOrbitalRadiusPanel(changeOrbitalRadiusTab).
 
-    LOCAL circularizeAtApoapsisTab IS addTab(orbitOptions, "Circularize At Apoapsis", TRUE).
-    circularizeAtApoapsisPanel(circularizeAtApoapsisTab).
-
-    LOCAL circularizeAtPeriapsisTab IS addTab(orbitOptions, "Circularize At Periapsis", TRUE).
-    circularizeAtPeriapsisPanel(circularizeAtPeriapsisTab).
-
-    LOCAL circularizeProgradeTab IS addTab(orbitOptions, "Circularize Prograde", TRUE).
-    circularizeProgradePanel(circularizeProgradeTab).
+    LOCAL circularizeTab IS addTab(orbitOptions, "Circularize Orbit", TRUE).
+    circularizeAtApoapsisPanel(circularizeTab).
+    circularizeAtPeriapsisPanel(circularizeTab).
+    circularizeProgradePanel(circularizeTab).
 
     LOCAL executeManeuverTab IS addTab(orbitOptions, "Execute Maneuver", TRUE).
     addMissionTaskButton(executeManeuverTab, "Execute Maneuver", {executeNextManeuver().}).
@@ -105,8 +101,6 @@ function circularizeAtPeriapsisPanel {
 
 function circularizeProgradePanel {
     parameter panel.
-
-    engineChoicePanel(panel).
 
     LOCAL circularizeButton IS panel:ADDBUTTON("Circularize Prograde").
 
