@@ -8,11 +8,11 @@ function rendevousTab {
     Local rendevousCategory IS addTab(taskCategories, "Rendevous", FALSE).
     Local rendevousOptions IS addTabWidget(rendevousCategory, TRUE).
 
-    Local matchInclinationTab IS addTab(rendevousOptions, "Match Inclination", TRUE).
-    matchInclinationPanel(matchInclinationTab).
-
     Local rendevousTaskTab IS addTab(rendevousOptions, "Rendevous", TRUE).
     rendevousPanel(rendevousTaskTab).
+
+    Local matchInclinationTab IS addTab(rendevousOptions, "Match Inclination", TRUE).
+    matchInclinationPanel(matchInclinationTab).
 
     LOCAL encounterTab is addTab(rendevousOptions, "Encounter", TRUE).
     encounterPanel(encounterTab).
