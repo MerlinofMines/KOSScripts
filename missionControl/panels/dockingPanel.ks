@@ -11,6 +11,8 @@ function dockingTab {
 
     Local dockOnPortTab IS addTab(dockingOptions, "Dock", TRUE).
     dockOnPortPanel(dockOnPortTab).
+
+    undockPanel(dockingOptions).
 }
 
 function dockOnPortPanel {
@@ -45,6 +47,30 @@ function dockOnPortPanel {
     SET dockButton:ONCLICK TO {
         addMissionTask(dockOnPortTask( sourcePortPopup:VALUE, targetPopup:VALUE, targetPortPopup:VALUE)).
         activateButton(dockButton).
+    }.
+}
+
+function undockPanel {
+    parameter panel.
+
+    Local undockTab IS addTab(panel, "Undock", TRUE).
+
+    SET dockingPorts TO SHIP:DockingPorts.
+
+    LOCAL popup is undockTab:addPopupMenu().
+    SET popup:OPTIONSUFFIX to "TOSTRING".
+
+    for option IN dockingPorts {
+        popup:addoption(option).
+    }
+
+    Local executeButton IS undockTab:ADDBUTTON("Undock Port").
+    SET executeButton:ONCLICK TO {
+        addMissionTask(getTask("Undock " + popup:VALUE:TOSTRING + " Docking Port", {
+            PRINT "Undocking " + popup:VALUE:TOSTRING + "Docking Port".
+            popup:VALUE:UNDOCK().
+        })).
+        activateButton(executeButton).
     }.
 }
 
