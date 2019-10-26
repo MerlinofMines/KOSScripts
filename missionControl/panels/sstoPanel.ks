@@ -1,7 +1,7 @@
 RUNONCEPATH("0:/ui/tab_widget.ks").
 RUNONCEPATH("0:/ui/engineWidget.ks").
 RUNONCEPATH("0:/missionControl/mission.ks").
-RUNONCEPATH("0:/ssto_improved.ks").
+RUNONCEPATH("0:/ssto/ssto_improved.ks").
 
 function sstoTab {
     parameter taskCategories.

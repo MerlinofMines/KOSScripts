@@ -1,1 +1,0 @@
-RUNPATH("0:/ssto.ks").
