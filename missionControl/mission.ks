@@ -16,11 +16,44 @@ function refreshActiveTasks {
 
     UNTIL NOT taskIterator:NEXT {
         LOCAL taskBox IS missionBox:AddHBox().
+        LOCAL index IS taskIterator:INDEX.
+
+        //Action Box
+        LOCAL actionBox IS taskBox:AddHBox().
+        SET actionBOX:STYLE:WIDTH TO 78.
+
+        //Move Up Button
+        LOCAL moveUpButton IS actionBox:ADDBUTTON("^").
+        SET moveUpButton:STYLE:WIDTH TO 20.
+        SET moveUpButton:STYLE:MARGIN:RIGHT TO 5.
+
+        IF index > 0 {
+            SET moveUpButton:ONCLICK TO {swapMissionTasks(index-1,index).}.
+        } ELSE {
+            SET moveUpButton:TEXT TO " ".
+            SET moveUpButton:STYLE:NORMAL:BG TO "transparent".
+            SET moveUpButton:STYLE:NORMAL_ON:BG TO "transparent".
+            SET moveUpButton:STYLE:HOVER:BG TO "transparent".
+            SET moveUpButton:STYLE:HOVER_ON:BG TO "transparent".
+        }
+
+        //Move Down Button
+        LOCAL moveDownButton IS actionBox:ADDBUTTON("v").
+        SET moveDownButton:STYLE:WIDTH TO 20.
+        SET moveDownButton:STYLE:MARGIN:RIGHT TO 5.
+
+        IF index < MISSION_TASK_LIST:LENGTH - 1 {
+            SET moveDownButton:ONCLICK TO {swapMissionTasks(index,index+1).}.
+        } ELSE {
+            SET moveDownButton:TEXT TO " ".
+            SET moveDownButton:STYLE:NORMAL:BG TO "transparent".
+            SET moveDownButton:STYLE:NORMAL_ON:BG TO "transparent".
+            SET moveDownButton:STYLE:HOVER:BG TO "transparent".
+            SET moveDownButton:STYLE:HOVER_ON:BG TO "transparent".
+        }
 
         //Remove Button
-        LOCAL removeButton IS taskBox:ADDBUTTON("X").
-
-        LOCAL index IS taskIterator:INDEX.
+        LOCAL removeButton IS actionBox:ADDBUTTON("X").
 
         SET removeButton:STYLE:WIDTH TO 20.
         SET removeButton:STYLE:MARGIN:RIGHT TO 5.
@@ -82,6 +115,23 @@ function clearMissionTasks {
     refreshActiveTasks().
 }
 
+function swapMissionTasks {
+    parameter firstIndex.
+    parameter secondIndex.
+
+    LOCAL firstTask IS MISSION_TASK_LIST[firstIndex].
+    LOCAL secondTask IS MISSION_TASK_LIST[secondIndex].
+
+    //Re-insert First Task
+    MISSION_TASK_LIST:REMOVE(firstIndex).
+    MISSION_TASK_LIST:INSERT(firstIndex,secondTask).
+
+    //Re-insert First Task
+    MISSION_TASK_LIST:REMOVE(secondIndex).
+    MISSION_TASK_LIST:INSERT(secondIndex,firstTask).
+
+    refreshActiveTasks().
+}
 
 function addMissionTaskButton {
     parameter taskTab.
