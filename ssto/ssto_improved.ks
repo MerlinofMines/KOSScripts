@@ -3,6 +3,7 @@ RUNONCEPATH("0:/output.ks").
 RUNONCEPATH("0:/utility.ks").
 RUNONCEPATH("0:/draw.ks").
 RUNONCEPATH("0:/constants.ks").
+RUNONCEPATH("0:/ssto/ssto_steering.ks").
 
 function sstoLaunch {
     parameter primaryEngines.
@@ -35,32 +36,14 @@ function sstoLaunch {
 
     WAIT 1.
 
+    BRAKES OFF.
+
     shortInfo("Throttling Up to 100%").
     LOCK THROTTLE TO 1.0.
 
-    //Print "Engaging SAS".
-    //SAS ON.
-
     UNTIL RUNWAY_EAST_COORDINATES:DISTANCE < 200 OR ALT:RADAR > 5 {
-    //    SET facing TO SHIP:FACING.
-        SET pitch to SHIP:FACING:PITCH - 0.2. // runway is a little off from east it seems.
-    //    Print "Facing: " + facing.
-    //    Print "Pitch: " + facing:PITCH.
-    //    Print "Heading: " + heading.
-
         SET SHIP:CONTROL:PITCH TO 0.5.
-
-        if pitch < 10 {
-    //        Print "Turn Left.".
-            SET steer TO (pitch / 100).
-        } else if pitch > 350 {
-            SET steer TO ((360 - pitch) / -100).
-    //        Print "Turn Right.".
-        } else {
-    //        Print "Way off! Abort.".
-        }
-    //    Print "Steer: " + steer.
-        SET SHIP:CONTROL:WHEELSTEER TO steer.
+        SET SHIP:CONTROL:WHEELSTEER TO getRunwaySteeringRawControlValue().
     }
 
     SET currentPrograde TO progradeDegrees().
