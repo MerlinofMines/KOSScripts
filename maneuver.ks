@@ -45,7 +45,6 @@ function executeNextManeuverWithController {
     REMOVE n.
 
     SET throttle TO 0.
-    UNLOCK THROTTLE.
 }
 
 //Throttle Controller allows us to burn through maneuvers which are trying to optimize different attributes besides

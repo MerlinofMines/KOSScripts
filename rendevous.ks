@@ -24,8 +24,10 @@ function encounter {
     LOCAL throttleController IS encounterThrottleController@:bind(lexicon()):bind(targetBody):bind(targetCaptureRadius).
     hohmannTransfer(targetBody, throttleController).
 
+
     info("Warping to Target Sphere of Influence").
-//    WARPTO( ETA:TRANSITION + TIME:SECONDS).
+	WAIT 1.
+    WARPTO( ETA:TRANSITION + TIME:SECONDS).
 
     WAIT UNTIL SHIP:ORBIT:BODY = targetBody.
 
