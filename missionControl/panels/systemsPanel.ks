@@ -33,6 +33,8 @@ function systemsTab {
 
     engineTabPanel(shipOptions).
 
+    sasTabPanel(shipOptions).
+
     Local agTab IS addTab(shipOptions, "Action Groups", TRUE).
     agTabPanel(agTab).
 }
@@ -133,6 +135,45 @@ function agTabPanel {
     LOCAL ag10Panel IS scrollPanel:ADDHLAYOUT().
     addMissionTaskButton(ag10Panel, "AG10 On", {AG10 ON. WAIT 0.5.}).
     addMissionTaskButton(ag10Panel, "AG10 Off", {AG10 OFF. WAIT 0.5.}).
+}
+
+function sasTabPanel {
+    parameter panel.
+
+    LOCAL sasTab IS addTab(panel, "SAS", TRUE).
+    LOCAL scrollPanel IS sasTab:addscrollbox().
+
+    LOCAL engageSASPanel IS scrollPanel:ADDVLAYOUT().
+    LOCAL engageSASLabel IS engageSASPanel:ADDLABEL("SAS").
+    SET engageSASLabel:STYLE:ALIGN TO "CENTER".
+
+    LOCAL sasOnOffPanel IS engageSASPanel:ADDHLAYOUT().
+    addMissionTaskButton(sasOnOffPanel, "Engage", {SAS ON. WAIT 0.5.}).
+    addMissionTaskButton(sasOnOffPanel, "Disengage", {SAS OFF. WAIT 0.5.}).
+
+    LOCAL sasModePanel IS scrollPanel:ADDVLayout().
+    LOCAL sasModeLabel IS sasModePanel:ADDLABEL("SAS Mode").
+    SET sasModeLabel:STYLE:ALIGN TO "CENTER".
+
+    LOCAL sasStabilityPanel IS sasModePanel:ADDHLAYOUT().
+    addMissionTaskButton(sasStabilityPanel, "Stability", {SET SASMODE to "STABILITY". WAIT 0.5.}).
+    addMissionTaskButton(sasStabilityPanel, "Maneuver", {SET SASMODE to "MANEUVER". WAIT 0.5.}).
+
+    LOCAL sasProgradePanel IS sasModePanel:ADDHLAYOUT().
+    addMissionTaskButton(sasProgradePanel, "Prograde", {SET SASMODE to "PROGRADE". WAIT 0.5.}).
+    addMissionTaskButton(sasProgradePanel, "Retrograde", {SET SASMODE to "RETROGRADE". WAIT 0.5.}).
+
+    LOCAL sasNormalPanel IS sasModePanel:ADDHLAYOUT().
+    addMissionTaskButton(sasNormalPanel, "Normal", {SET SASMODE to "NORMAL". WAIT 0.5.}).
+    addMissionTaskButton(sasNormalPanel, "Anti-Normal", {SET SASMODE to "ANTINORMAL". WAIT 0.5.}).
+
+    LOCAL sasRadialPanel IS sasModePanel:ADDHLAYOUT().
+    addMissionTaskButton(sasRadialPanel, "Radial Out", {SET SASMODE to "RADIALOUT". WAIT 0.5.}).
+    addMissionTaskButton(sasRadialPanel, "Radial In", {SET SASMODE to "RADIALIN". WAIT 0.5.}).
+
+    LOCAL sasTargetPanel IS sasModePanel:ADDHLAYOUT().
+    addMissionTaskButton(sasTargetPanel, "Target", {SET SASMODE to "TARGET". WAIT 0.5.}).
+    addMissionTaskButton(sasTargetPanel, "Anti-Target", {SET SASMODE to "ANTITARGET". WAIT 0.5.}).
 }
 
 function activatePrimaryEnginesButtonHandler {
