@@ -12,8 +12,13 @@ function changeOrbitalRadiusAtApoapsis {
 	add nd.
 
 	//execute
-	LOCAL throttleController IS matchPeriapsisThrottleController@:bind(lexicon(),desiredRadius).
-	executeNextManeuverWithController(throttleController).
+	if (desiredRadius <= APOAPSIS) {
+		LOCAL throttleController IS matchPeriapsisThrottleController@:bind(lexicon(),desiredRadius).
+		executeNextManeuverWithController(throttleController).
+	} else {
+		LOCAL throttleController IS matchApoapsisThrottleController@:bind(lexicon(),desiredRadius).
+		executeNextManeuverWithController(throttleController).
+	}
 
 	REMOVE nd.
 }
@@ -32,8 +37,13 @@ function changeOrbitalRadiusAtPeriapsis {
 	//Then, we also need to allow ourselves to burn through the transition from AP->PE, if needed, before we start watching
 	//This is likely done using a hybrid approach. (matchOrbitalRadiusWithManeuverThrottleController)
 	//execute
-	LOCAL throttleController IS matchApoapsisThrottleController@:bind(lexicon(),desiredRadius).
-	executeNextManeuverWithController(throttleController).
+	if (desiredRadius >= PERIAPSIS) {
+		LOCAL throttleController IS matchApoapsisThrottleController@:bind(lexicon(),desiredRadius).
+		executeNextManeuverWithController(throttleController).
+	} else {
+		LOCAL throttleController IS matchPeriapsisThrottleController@:bind(lexicon(),desiredRadius).
+		executeNextManeuverWithController(throttleController).
+	}
 
 	REMOVE nd.
 }
