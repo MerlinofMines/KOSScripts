@@ -6,8 +6,17 @@ fromMun().
 function fromMun {
 
     LIST ENGINES in myEngines.
+
+    SET THROTTLE TO 0.
+
     for eng IN myEngines {
-        SET eng:THRUSTLIMIT TO 80.
+        eng:ACTIVATE.
+    }
+
+    executeDescent().
+
+    for eng IN myEngines {
+        SET eng:THRUSTLIMIT TO 50.
     }
 
     WAIT 0.5.

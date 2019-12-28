@@ -3,16 +3,36 @@ RUNONCEPATH("0:/utility.ks").
 RUNONCEPATH("0:/maneuver.ks").
 RUNONCEPATH("0:/orbital_information.ks").
 
+function executeDescent {
+    SAS ON.
+
+    SET SASMODE TO "RETROGRADE".
+
+    WAIT UNTIL VANG(SHIP:FACING:FOREVECTOR, SHIP:ORBIT:VELOCITY:ORBIT) > 179.5.
+
+    PRINT "READY".
+
+    SET THROTTLE TO 1.0.
+
+    LOCAL previousGroundSpeed IS GROUNDSPEED.
+
+    UNTIL abs(GROUNDSPEED) > previousGroundSpeed OR GROUNDSPEED < 1 {
+        SET previousGroundSpeed TO GROUNDSPEED.
+    }
+
+    SET THROTTLE TO 0.
+}
+
+
+
+//This function currently assumes that we are landing mostly vertical; doesn't work well if ground speed is signficant.
 function rocketLanding {
 
     SAS ON.
 
     SET SASMODE TO "RETROGRADE".
 
-    LEGS ON.
-
     suicideBurn().
-
 }
 
 function suicideBurn {
@@ -65,7 +85,11 @@ function suicideBurnController {
     PRINT "Effective Acceleration: " + effectiveAcceleration.
     PRINT "Status: " + SHIP:STATUS.
 
-    LOCAL state iS previousState["S"]. //State.  0 = not started burnt, 1 = started burning
+    LOCAL state IS previousState["S"]. //State.  0 = not started burnt, 1 = started burning
+
+    if (timeToDesiredSpeed < 5 AND NOT LEGS) {
+        LEGS ON.
+    }
 
     if d0 < dF OR SHIP:STATUS = "LANDED" {
         return -1. //We did it!.
