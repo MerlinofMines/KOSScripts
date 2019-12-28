@@ -55,7 +55,7 @@ function executeNextManeuverWithController {
 function maneuverBurn {
     parameter throttleController.
 
-    SET myThrottle TO 1.
+    SET myThrottle TO 0.
 
     LOCK THROTTLE TO myThrottle.
 
