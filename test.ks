@@ -1,9 +1,34 @@
 RUNONCEPATH("0:/landing/rocket_landing.ks").
+RUNONCEPATH("0:/launch/rocket_launch.ks").
 
 //fromKSP().
-fromMun().
+//fromMun().
+//launchFromMun().
+
+doit().
+
+function doit {
+    if ( SHIP:STATUS = "LANDED") {
+        launchFromMun().
+    } else {
+        fromMun().
+    }
+}
+
+function launchFromMun {
+
+    LIST ENGINES in myEngines.
+
+    for eng IN myEngines {
+        SET eng:THRUSTLIMIT TO 20.
+    }
+
+    launchRocket(6000,HEADING(-90, 45)).
+}
 
 function fromMun {
+
+    PRINT " RUNNING".
 
     LIST ENGINES in myEngines.
 
