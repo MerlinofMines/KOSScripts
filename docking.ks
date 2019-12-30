@@ -202,8 +202,8 @@ function dock {
 			LOCAL currentTranslation IS getOrientedTranslation(orientationDirection, targetPrograde).
 			LOCAL deltaTranslation IS desiredTranslation - currentTranslation.
 
-//			PRINT("Translation Change: " + deltaTranslation).
-//			PRINT("Translation Change Mag: " + deltaTranslation:MAG).
+			PRINT("Translation Change: " + deltaTranslation).
+			PRINT("Translation Change Mag: " + deltaTranslation:MAG).
 
 //			drawVector(desiredTranslation*100, "Desired Translation", sourcePort:NODEPOSITION).
 //			drawVector(currentTranslation*100, "Current Translation", sourcePort:NODEPOSITION).
@@ -211,20 +211,29 @@ function dock {
 
 			//Up/Down
 			if(abs(deltaTranslation:Y) > 0.001) {
-	//			PRINT("Correcting Up/Down.").
+				PRINT("Correcting Up/Down.").
 				SET SHIP:CONTROL:TOP TO clamp(deltaTranslation:Y*50, -1, 1).
+			} else {
+				PRINT "Not Correcting Up/Down".
+				SET SHIP:CONTROL:TOP TO 0.
 			}
 			
 			//Left/Right
 			if(abs(deltaTranslation:Z) > 0.001) {
-	//			PRINT("Correcting Left/Right.").
+				PRINT("Correcting Left/Right.").
 				SET SHIP:CONTROL:STARBOARD TO clamp(deltaTranslation:Z*50, -1, 1).
+			} else {
+				PRINT("Not Correcting Left/Right.").
+				SET SHIP:CONTROL:STARBOARD TO 0.
 			}
 
 			//Forward/Backwards
 			if(abs(deltaTranslation:X) > 0.001) {
-	//			PRINT("Correcting Forwards/Backwards.").
+				PRINT("Correcting Forwards/Backwards.").
 				SET SHIP:CONTROL:FORE TO clamp(deltaTranslation:X*50, -1, 1).
+			} else {
+				PRINT("Not Correcting Forwards/Backwards.").
+				SET SHIP:CONTROL:FORE TO 0.
 			}
 		} else {
 			RCS OFF.

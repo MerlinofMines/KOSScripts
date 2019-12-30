@@ -38,6 +38,11 @@ function dockOnPortPanel {
         targetPopup:addoption(option).
     }
 
+    if dockableTargets:LENGTH > 0 {
+        SET targetPortPopup:OPTIONS TO getDockablePorts(dockableTargets[0]).
+    }
+
+
     SET targetPopup:ONCHANGE TO {
         parameter choice.
         SET targetPortPopup:OPTIONS TO getDockablePorts(choice).
