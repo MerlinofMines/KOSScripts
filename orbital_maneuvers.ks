@@ -48,19 +48,26 @@ function changeOrbitalRadiusAtPeriapsis {
 	REMOVE nd.
 }
 
-
 function matchOrbitalRadiusWithManeuverThrottleController {
 	parameter previousState.
 	parameter desiredRadius.
 	parameter orbitalRadiusSupplier.
 	parameter nd. //Maneuver Node
-	parameter dv0.//Original vector of maneuver
+
+	//Store the original vector for comparison later.
+	if (NOT previousState:HASKEY("V")) {
+		SET previousState["V"] TO nd:deltav.
+	}
+
+	LOCAL dv0 IS previousState["V"].
 
 	//If the lexicon isn't empty, or we're below 5% remaining dV, then we're fine tuning
-	IF previousState:LENGTH > 0 OR (nd:deltav:mag/dv0:mag) < 0.05 {
+	IF previousState:LENGTH > 1 OR (nd:deltav:mag/dv0:mag) < 0.05 {
+		PRINT "Using Match Orbital Radius Throttle Controller".
 		return matchOrbitalRadiusThrottleController(previousState, desiredRadius, orbitalRadiusSupplier).
 	} else {
-		return deltaVRemainingThrottleController(nd, dv0).
+		PRINT "Using Delta V Remaining Throttle Controller".
+		return deltaVRemainingThrottleController(previousState, nd).
 	}
 }
 

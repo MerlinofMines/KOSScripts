@@ -1,10 +1,7 @@
 function executeNextManeuver {
     SET nd TO NEXTNODE.
-    set dv0 to nd:deltav.
 
-    LOCAL controller IS deltaVRemainingThrottleController@:bind(nd):bind(dv0).
-
-//    LOCAL controller IS matchApoapsisThrottleController@:bind(lexicon()):bind(100000).
+    LOCAL controller IS deltaVRemainingThrottleController@:bind(lexicon()):bind(nd).
 
     executeNextManeuverWithController(controller).
 }
@@ -55,7 +52,7 @@ function executeNextManeuverWithController {
 function maneuverBurn {
     parameter throttleController.
 
-    SET myThrottle TO 0.
+    SET myThrottle TO THROTTLE.
 
     LOCK THROTTLE TO myThrottle.
 
@@ -73,9 +70,22 @@ function maneuverBurn {
     PRINT "Maneuver Complete".
 }
 
+function delegateThrottleController {
+    parameter delegateController.
+
+    return delegateController().
+}
+
 function deltaVRemainingThrottleController {
+    parameter previousState.
     parameter nd.
-    parameter dv0.
+
+    //Store the original vector for comparison later.
+    if (NOT previousState:HASKEY("V")) {
+        SET previousState["V"] TO nd:deltav.
+    }
+
+    LOCAL dv0 IS previousState["V"].
 
     //recalculate current max_acceleration, as it changes while we burn through fuel
     set max_acc to ship:maxthrust/ship:mass.

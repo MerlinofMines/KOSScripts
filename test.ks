@@ -1,11 +1,25 @@
 RUNONCEPATH("0:/landing/rocket_landing.ks").
 RUNONCEPATH("0:/launch/rocket_launch.ks").
+RUNONCEPATH("0:/rendevous/encounter.ks").
 
 //fromKSP().
 //fromMun().
 //launchFromMun().
 
-doit().
+//doit().
+
+encounter_burn(BODY("Mun") ,7000).
+
+
+function encounter_burn {
+    parameter targetBody.
+    parameter targetCaptureRadius.
+
+    LOCAL throttleController IS encounterThrottleController@:bind(lexicon()):bind(targetBody):bind(targetCaptureRadius):bind(matchApoapsisThrottleController@:bind(lexicon()):bind(12000000)).
+
+    executeNextManeuverWithController(throttleController).
+    shortInfo("Hohmann Transfer Complete").
+}
 
 function doit {
     if ( SHIP:STATUS = "LANDED") {

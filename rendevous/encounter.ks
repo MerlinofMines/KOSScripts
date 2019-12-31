@@ -35,29 +35,29 @@ function encounter {
 function encounterThrottleController {
     parameter previousState.
     parameter targetBody.
-    parameter desiredPe.//Periapsis of encountered body
-    parameter desiredAp.//Apoapsis without encounter
+    parameter desiredPe. //Periapsis of encountered body
+    parameter delegateController. //Without an encounter, use this controller delegate.
 
     if NOT SHIP:ORBIT:HASNEXTPATCH {
         PRINT "No Encounter Yet".
-        return matchApoapsisThrottleController(previousState, desiredAp).
+        return delegateController().
     } else IF NOT (SHIP:ORBIT:NEXTPATCH:BODY = targetBody) {
         PRINT "WARNING: ENCOUNTER WITH UNEXPECTED BODY DETECTED: " + SHIP:ORBIT:NEXTPATCH:BODY.
-        return matchApoapsisThrottleController(previousState, desiredAp).
+        return delegateController().
     }
+
     PRINT "Detected Correct Encounter.".
 
-//See if this is the first time we detected the encounter, reset state and begin calculating new throttle
+    //See if this is the first time we detected the encounter, reset state and begin calculating new throttle
     IF NOT previousState:HASKEY("E") {
-        LOCAL previousThrottle IS previousState["H"].
-        previousState:CLEAR.
+        LOCAL previousThrottle IS THROTTLE.
         SET previousState["E"] TO TRUE.
         SET previousState["H"] TO previousThrottle.
         SET previousState["T"] TO TIME:SECONDS.
         SET previousState["P"] TO SHIP:ORBIT:NEXTPATCH:PERIAPSIS.
         SET previousState["I"] TO SHIP:ORBIT:NEXTPATCH:INCLINATION.
 
-    //TODO: previousThrottle may be too high in some cases, not sure yet, as is waiting 0.01. sec.
+        //TODO: previousThrottle may be too high in some cases, not sure yet, as is waiting 0.01. sec.
         WAIT 0.01.
         return previousThrottle.
     }
@@ -71,16 +71,16 @@ function encounterThrottleController {
     LOCAL newInclination IS SHIP:ORBIT:NEXTPATCH:INCLINATION.
     LOCAL newTime IS TIME:SECONDS.
 
-    IF previousInclination < 90 AND previousPE > 0 {
+    IF previousInclination < 90 {
         PRINT "Previous Inclination < 90.".
         PRINT "BEFORE: " + previousPE.
-        SET previousPe TO -previousPe.
+        SET previousPe TO -((2 * SHIP:ORBIT:NEXTPATCH:BODY:RADIUS) + previousPe + desiredPe).
     }
 
-    IF newInclination < 90 AND newPe > 0 {
+    IF newInclination < 90 {
         PRINT "New Inclination < 90.".
         PRINT "BEFORE: " + newPe.
-        SET newPe TO -newPe.
+        SET newPe TO -((2 * SHIP:ORBIT:NEXTPATCH:BODY:RADIUS) + newPe + desiredPe).
     }
 
     LOCAL peChange IS newPe - previousPe.
@@ -91,6 +91,10 @@ function encounterThrottleController {
     PRINT "Previous Pe: " + previousPe.
     PRINT "Previous Inclination: " + previousInclination.
 
+    PRINT "New Pe: " + newPe.
+    PRINT "New Inclination: " + newInclination.
+
+    PRINT "Body Radius: " + SHIP:ORBIT:NEXTPATCH:BODY:RADIUS.
     PRINT "Desired Pe: " + desiredPe.
     PRINT "Time Change: " + timeChange.
     PRINT "New Inclination: " + newInclination.
@@ -99,7 +103,7 @@ function encounterThrottleController {
     IF newPe > desiredPe RETURN -1.
 
     PRINT "Desired Periapsis Gap: " + abs(1 - (newPe/desiredPe)).
-//IF we're stupid close to our target orbit, and our change rate is also low, call it quits.
+    //If we're stupid close to our target orbit, and our change rate is also low, call it quits.
     IF abs(1 - (newPe/desiredPe)) < 0.001 AND peChangeRate < 0.1 {
         RETURN -1.
     }
@@ -108,15 +112,15 @@ function encounterThrottleController {
     SET previousState["P"] TO SHIP:ORBIT:NEXTPATCH:PERIAPSIS. //Don't store modified value, use the original.
     SET previousState["T"] TO newTime.
 
-//Need to wait a non-zero amount of time to allow for an actual "burn".
+    //Need to wait a non-zero amount of time to allow for an actual "burn".
     WAIT 0.01.
 
-//Still have >1 burn time, previous throttle is ok.
+    //Still have >1 second burn time, previous throttle is ok.
     IF newPe + peChangeRate < desiredPe {
         return previousThrottle.
     }
 
-//Time to calculate new throttle.
+    //Time to calculate new throttle.
     LOCAL newThrottle IS min(1,2*(desiredPe+0.1-newPe)/(peChangeRate)) * previousThrottle.
     SET previousState["H"] TO newThrottle.
     return newThrottle.

@@ -36,7 +36,7 @@ function rendevous {
 
 }
 
-	//This function makes final adjustments to the approach to ensure that we
+//This function makes final adjustments to the approach to ensure that we
 function finalApproach {
     parameter targetVessel.
     parameter sourceVessel Is SHIP.
@@ -140,38 +140,52 @@ function suicideBurn {
     Print "Final Separation Distance: " + separationDistanceAtTime(sourceVessel, targetVessel, TIME:SECONDS).
 }
 //This function assumes that you have already performed an inclination change and the targetVessel Is in the
-//same plane as sourceVessel.
-//ThrottleController Parameter is expected to be a delegate bindable to a desiredApoapsis before execution.
+//same plane as sourceVessel.  It also assumes that your starting orbit is roughtly circular.
+//ThrottleController Parameter is expected to be a delegate bindable to a delegateController which will be bound and then executed.
 function hohmannTransfer {
     parameter targetOrbital.
-    parameter throttleController IS matchApoapsisThrottleController@:bind(lexicon()).
+    parameter throttleController IS delegateThrottleController@.
 
-//1. Calculate Transfer Time.
+    //1. Calculate Transfer Time.
     PRINT "Calculating Hohmann Transfer Time.  This may take up to 30 seconds.".
     shortInfo("Calculating Hohmann Transfer Time").
 
     LOCAL transferTime IS getHohmannTransferTime(targetOrbital).
 
-//2. Calculate Burn Amount.
+    //2. Calculate Burn Amount.
     LOCAL transferDeltaV IS getHohmannTransferDeltaV(targetOrbital, transferTime).
 
-//3. Calculate final apoapsis of hohmann transfer orbit
+    //3. Calculate final apoapsis of hohmann transfer orbit
     LOCAL positionVector IS positionVectorAt(SHIP, transferTime).
     LOCAL targetPeriapsisVector IS getPeriapsisVector(targetOrbital).
     LOCAL hohmannTrueAnomaly IS VANG(-positionVector, targetPeriapsisVector).
     LOCAL hohmannRadius IS getRadiusFromTrueAnomaly(targetOrbital, hohmannTrueAnomaly).
-    LOCAL desiredApoapsis IS hohmannRadius - SHIP:ORBIT:BODY:RADIUS.
+    LOCAL desiredRadius IS hohmannRadius - SHIP:ORBIT:BODY:RADIUS.
 
-    Print "Desired Apoapsis: " + desiredApoapsis.
+    Print "Desired Radius: " + desiredRadius.
 
-//4. Set up Maneuver.
+    //4. Set up Maneuver.
     SET myNode to NODE(transferTime, 0, 0, transferDeltaV).
     ADD myNode.
 
-//5. Execute Maneuver
-    LOCAL controller IS throttleController:bind(desiredApoapsis).
+    //5.  Set up Throttle Controller
+    LOCAL hohmannThrottleController IS matchOrbitalRadiusWithManeuverThrottleController@:bind(lexicon()):bind(desiredRadius).
+
+    if (desiredRadius > SHIP:ORBIT:APOAPSIS OR (transferDeltaV < 0 AND desiredRadius > PERIAPSIS)) {
+        LOCAL orbitalRadiusSupplier IS {return SHIP:ORBIT:APOAPSIS.}.
+        SET hohmannThrottleController TO hohmannThrottleController:bind(orbitalRadiusSupplier).
+    } else {
+        LOCAL orbitalRadiusSupplier IS {return SHIP:ORBIT:PERIAPSIS.}.
+        SET hohmannThrottleController TO hohmannThrottleController:bind(orbitalRadiusSupplier).
+    }
+
+    SET hohmannThrottleController TO hohmannThrottleController:bind(myNode).
+
+    //6. Execute Maneuver
+    LOCAL controller IS throttleController:bind(hohmannThrottleController).
 
     executeNextManeuverWithController(controller).
+
     shortInfo("Hohmann Transfer Complete").
 }
 
