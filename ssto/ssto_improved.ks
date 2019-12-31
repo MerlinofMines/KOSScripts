@@ -120,6 +120,12 @@ function sstoLaunch {
     shortInfo("Engaging Solar Panels").
     SET AG4 TO True.
 
+    shortInfo("Engaging Primary Engines").
+    for eng in primaryEngines {
+        SET eng:THRUSTLIMIT TO 100.
+        eng:activate().
+    }
+
     info("Launch Complete", 100).
 }
 
