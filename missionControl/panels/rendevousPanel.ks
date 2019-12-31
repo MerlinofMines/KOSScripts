@@ -1,6 +1,7 @@
 RUNONCEPATH("0:/ui/tab_widget.ks").
 RUNONCEPATH("0:/missionControl/mission.ks").
-RUNONCEPATH("0:/rendevous.ks").
+RUNONCEPATH("0:/rendevous/encounter.ks").
+RUNONCEPATH("0:/rendevous/rendevous.ks").
 
 function rendevousTab {
     parameter taskCategories.
