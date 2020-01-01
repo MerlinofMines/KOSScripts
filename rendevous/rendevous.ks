@@ -352,126 +352,91 @@ function matchInclination {
         return.
     }
 
-    SAS ON.
-    SET NAVMODE TO "Orbit".
-    WAIT 0.5.
-    SET SASMODE TO "ANTINORMAL".
-    WAIT 0.5.
+    LOCAL throttleController IS matchInclinationThrottleController@:bind(lexicon()):bind(targetOrbital).
 
-    Local shipOrbitalVelocity Is SHIP:ORBIT:VELOCITY:ORBIT.
-    Local shipOrbitalPosition Is SHIP:ORBIT:BODY:ORBIT:POSITION.
+    LOCAL nd IS relativeInclinationBurnManeuverNode(targetOrbital).
+    ADD nd.
 
-    PRINT "Rotating to Anti-Normal in preparation for inclination burn.".
+    executeNextManeuverWithController(throttleController).
 
-    UNTIL (VANG(SHIP:FACING:FOREVECTOR, VCRS(shipOrbitalVelocity,shipOrbitalPosition)) < 0.1) {
-    //		CLEARSCREEN.
-    //		CLEARVECDRAWS().
-    //		PRINT "Angle: " + VANG(SHIP:FACING:FOREVECTOR, VCRS(shipOrbitalVelocity,shipOrbitalPosition)).
-    //		drawVector(SHIP:FACING:FOREVECTOR:NORMALIZED*30,"Facing").
-    //		drawVector(VCRS(shipOrbitalVelocity,shipOrbitalPosition)*30,"Normal").
+    PRINT "Inclination Burn Complete.".
 
-        SET shipOrbitalVelocity TO SHIP:ORBIT:VELOCITY:ORBIT.
-        SET shipOrbitalPosition TO SHIP:ORBIT:BODY:ORBIT:POSITION.
-    }
-
-    Local timeToBurn Is timeToInclinationBurn(targetOrbital).
-
-    IF (timeToBurn - 10 > TIME:SECONDS) {
-        WARPTO(timeToBurn - 10).
-    }
-
-    UNTIL TIME:SECONDS > timeToBurn {
-    //		CLEARSCREEN.
-    //		Print "Time to Burn: " + (timeToBurn - TIME:SECONDS).
-    }
-
-    inclinationBurn(targetOrbital).
-
-//  We are recursing as our algorithm isn't quite good enough yet.
+    //  We are recursing as our algorithm isn't quite good enough yet.
     matchInclination(targetOrbital).
 }
 
-function inclinationBurn {
-    parameter targetVessel.
+function matchInclinationThrottleController {
+    parameter previousState.
+    parameter targetOrbital.
 
-    Local relI Is 1000.
-
-    SET DONE TO FALSE.
-
-    UNTIL FALSE {
-        CLEARSCREEN.
-        Local newRelI Is relativeInclination(targetVessel:ORBIT).
-        PRINT "Old Relative Inclination: " + relI.
-        PRINT "New Relative Inclination: " + newRelI.
-        if(newRelI - relI > relI*0.01) {
-            BREAK.
-        }
-
-        if(newRelI > 0.02) {
-            SET THROTTLE to 1.0.
-        }
-
-        if(newRelI < 0.02) {
-            SET THROTTLE TO 0.5.
-        }
-
-        if(newRelI < 0.01) {
-            SET THROTTLE TO 0.2.
-        }
-
-        if(newRelI < 0.005) {
-            SET THROTTLE TO 0.1.
-        }
-
-        if(newRelI < 0.002) {
-            SET THROTTLE TO 0.01.
-        }
-
-        SET relI TO newRelI.
-        WAIT 0.01.
+    if (NOT previousState:HASKEY("I")) {
+        SET previousState["I"] TO relativeInclination(targetOrbital:ORBIT).
+        SET previousState["H"] TO THROTTLE.
+        WAIT 0.1.
+        return THROTTLE.//TODO: How can we calculate this?
     }
 
-    SET THROTTLE TO 0.0.
+    LOCAL relI IS previousState["I"].
 
-//	WAIT UNTIL THROTTLE = 0.
-    WAIT 1.
+    Local newRelI Is relativeInclination(targetOrbital:ORBIT).
 
-    UNLOCK THROTTLE.
+    PRINT "Old Relative Inclination: " + relI.
+    PRINT "New Relative Inclination: " + newRelI.
 
-    PRINT "Inclination Burn Complete.".
+    SET previousState["I"] TO newReli.
+
+    if (newRelI - relI > relI*0.01){
+        return -1.
+    } else if(newRelI < 0.002) {
+        return 0.01.
+    } else if(newRelI < 0.005) {
+        return 0.1.
+    } else if(newRelI < 0.01) {
+        return 0.2.
+    } else if(newRelI < 0.02) {
+        return 0.5.
+    } else {
+        return 1.0.
+    }
 }
 
-function timeToInclinationBurn {
+function relativeInclinationBurnManeuverNode {
     parameter targetVessel.
-
-    //Delta V calculation for inclination change, taken from:
-    //https://en.wikipedia.org/wiki/Orbital_inclination_change#Calculation
 
     Local relativeInc Is relativeInclination(targetVessel:ORBIT).
     PRINT "Relative Inclination: " + relativeInc.
 
     Local timeAtNextAscendingNode Is timeAtNextRelativeAscendingNode(targetVessel).
+    Local timeAtNextDescendingNode Is timeAtNextRelativeDescendingNode(targetVessel).
 
-    Local vectorToAscendingNode Is positionVectorAt(SHIP, timeAtNextAscendingNode).
+    LOCAL timeAtNode IS timeAtNextAscendingNode.
 
-    Local trueAnomalyAscending Is trueAnomalyFromStateVectors(vectorToAscendingNode).
+    LOCAL multiplier IS -1.
 
-    Local deltaVRequired Is inclinationChangeDeltaV(relativeInc, trueAnomalyAscending).
+    if ( timeAtNextDescendingNode < timeAtNextAscendingNode) {
+        SET timeAtNode TO timeAtNextDescendingNode.
+        SET multiplier TO 1.
+        PRINT "Using Descending Node.".
+    } else {
+        PRINT "Using Ascending Node.".
+    }
 
-//	PRINT "Delta V Required: " + deltaVRequired.
+    Local vectorToNode Is positionVectorAt(SHIP, timeAtNode).
+    Local trueAnomaly Is trueAnomalyFromStateVectors(vectorToNode).
+    Local deltaVRequired Is inclinationChangeDeltaV(relativeInc, trueAnomaly).
+
+    PRINT "Inclination Delta V: " + deltaVRequired.
 
     Local halfBurnTime Is calculatehalfBurnDuration(deltaVRequired).
 
-//  info("Inclination Change Half Burn Time: " + halfBurnTime).
+    SET timeToBurn TO timeAtNode - halfBurnTime.
 
-    SET timeToAscendingNodeBurn TO timeAtNextAscendingNode - halfBurnTime.
-
-    if (timeToAscendingNodeBurn < TIME:SECONDS) {
-        SET timeToAscendingNodeBurn TO timeToAscendingNodeBurn + SHIP:ORBIT:PERIOD.
+    if (timeToBurn < TIME:SECONDS + 30) {
+        SET timeAtNode TO timeAtNode + SHIP:ORBIT:PERIOD.
     }
 
-//  Start a tiny bit second early, so we can tail off nicely at the end.
-    return timeToAscendingNodeBurn - 0.25.
+    //  Start a tiny bit second early, so we can tail off nicely at the end.
+    return NODE(timeAtNode - 0.25, 0, multiplier*deltaVRequired, 0).
 }
 
 function inclinationChangeDeltaV {
@@ -600,7 +565,31 @@ function timeToRelativeAscendingNode {
     return timeAtNextRelativeAscendingNode(targetVessel, sourceVessel) - TIME:SECONDS.
 }
 
+function timeAtNextRelativeDescendingNode {
+    parameter targetVessel.
+    parameter sourceVessel Is SHIP.
+
+    Local vectorToDescendingNode Is vectorToRelativeDescendingNode(targetVessel, sourceVessel).
+
+    return timeAtNextStateVector(vectorToDescendingNode, sourceVessel).
+}
+
 function timeAtNextRelativeAscendingNode {
+    parameter targetVessel.
+    parameter sourceVessel Is SHIP.
+
+    Local vectorToAscendingNode Is vectorToRelativeAscendingNode(targetVessel, sourceVessel).
+
+    return timeAtNextStateVector(vectorToAscendingNode, sourceVessel).
+}
+
+function vectorToRelativeDescendingNode {
+    parameter targetVessel.
+    parameter sourceVessel Is SHIP.
+    return -vectorToRelativeAscendingNode(targetVessel, sourceVessel).
+}
+
+function vectorToRelativeAscendingNode {
     parameter targetVessel.
     parameter sourceVessel Is SHIP.
 
@@ -613,51 +602,16 @@ function timeAtNextRelativeAscendingNode {
     Local shipOrbitalMomentum Is VCRS(shipOrbitalPosition, shipOrbitalVelocity).
     Local targetOrbitalMomentum Is VCRS(targetOrbitalPosition, targetOrbitalVelocity).
 
-//	drawVector(shipOrbitalPosition, "Ship Position", sourceVessel:ORBIT:BODY:POSITION).
-//	drawVector(shipOrbitalVelocity:NORMALIZED*(sourceVessel:ORBIT:APOAPSIS + sourceVessel:ORBIT:BODY:RADIUS), "Ship Velocity").
-//	drawVector(shipOrbitalMomentum:NORMALIZED*(sourceVessel:ORBIT:APOAPSIS + sourceVessel:ORBIT:BODY:RADIUS), "Ship Momentum", sourceVessel:ORBIT:BODY:POSITION).
-//	drawVector(targetOrbitalMomentum, "Target Momentum", targetVessel:ORBIT:BODY:POSITION).
+    //	drawVector(shipOrbitalPosition, "Ship Position", sourceVessel:ORBIT:BODY:POSITION).
+    //	drawVector(shipOrbitalVelocity:NORMALIZED*(sourceVessel:ORBIT:APOAPSIS + sourceVessel:ORBIT:BODY:RADIUS), "Ship Velocity").
+    //	drawVector(shipOrbitalMomentum:NORMALIZED*(sourceVessel:ORBIT:APOAPSIS + sourceVessel:ORBIT:BODY:RADIUS), "Ship Momentum", sourceVessel:ORBIT:BODY:POSITION).
+    //	drawVector(targetOrbitalMomentum, "Target Momentum", targetVessel:ORBIT:BODY:POSITION).
 
-//	Local relativeInc Is VANG(shipOrbitalMomentum, targetOrbitalMomentum).
-//	PRINT "Relative Inclination: " + relativeInc.
-
-//Ascending Node position and velocity.  Note that magnitude is not correct, but it is also not important.
+    //Ascending Node position and velocity.  Note that magnitude is not correct, but it is also not important.
     Local vectorToAscendingNode Is VCRS(shipOrbitalMomentum, targetOrbitalMomentum):NORMALIZED.
-//	LOCAL velocityAtAscendingNode IS VCRS(shipOrbitalMomentum, vectorToAscendingNode):NORMALIZED.
 
-//	drawVector(vectorToAscendingNode:NORMALIZED*(sourceVessel:ORBIT:APOAPSIS + sourceVessel:ORBIT:BODY:RADIUS), "Node Vector", sourceVessel:Orbit:Body:Position).
-//	drawVector(velocityAtAscendingNode:NORMALIZED*(sourceVessel:ORBIT:APOAPSIS + sourceVessel:ORBIT:BODY:RADIUS), "Ascending Node Velocity Vector", vectorToAscendingNode:NORMALIZED*(sourceVessel:ORBIT:APOAPSIS + sourceVessel:ORBIT:BODY:RADIUS)+sourceVessel:Orbit:Body:Position).
+    //	drawVector(vectorToAscendingNode:NORMALIZED*(sourceVessel:ORBIT:APOAPSIS + sourceVessel:ORBIT:BODY:RADIUS), "Node Vector", sourceVessel:Orbit:Body:Position).
+    //	drawVector(velocityAtAscendingNode:NORMALIZED*(sourceVessel:ORBIT:APOAPSIS + sourceVessel:ORBIT:BODY:RADIUS), "Ascending Node Velocity Vector", vectorToAscendingNode:NORMALIZED*(sourceVessel:ORBIT:APOAPSIS + sourceVessel:ORBIT:BODY:RADIUS)+sourceVessel:Orbit:Body:Position).
 
-//The below was taken graciously from the following post:
-//https://www.reddit.com/r/Kos/comments/4hhrld/finding_the_relative_andn/
-
-//Calculate eccentricity vector.
-//See this equation: https://en.wikipedia.org/wiki/Eccentricity_vector#Calculation
-    Local eccentricityVector Is getEccentricityVector(sourceVessel).
-
-//Get True Anomaly of Relative Ascending Node.
-//See this equation: https://en.wikipedia.org/wiki/True_anomaly#From_state_vectors
-    Local trueAnomalyAscending Is trueAnomalyFromStateVectors(vectorToAscendingNode).
-
-    Local meanAnomalyAscending Is meanAnomalyFromTrueAnomaly(trueAnomalyAscending, eccentricityVector:Mag).
-
-//Get Time to Relative Ascending Node from Periapsis
-//	Local t Is ETA:PERIAPSIS + TIME:SECONDS - sourceVessel:ORBIT:PERIOD.
-    Local t IS timeAtNextPeriapsis(sourceVessel) - sourceVessel:ORBIT:PERIOD.
-    Local n Is 360/sourceVessel:ORBIT:PERIOD.
-
-    Local timeAtNextAscendingNode Is meanAnomalyAscending / n + t.
-
-//	Print "True anomaly ascending: " + trueAnomalyAscending.
-//	Print "Mean Anomaly ascending: " + meanAnomalyAscending.
-
-    IF (timeAtNextAscendingNode < TIME:SECONDS) {
-        SET timeAtNextAscendingNode TO timeAtNextAscendingNode + sourceVessel:ORBIT:PERIOD.
-    }
-
-    LOCAL position IS positionVectorAt(SHIP, timeAtNextAscendingNode).
-
-//	drawVector(position, "Calculated Time At Next Ascending Node", SHIP:ORBIT:BODY:POSITION).
-
-    return timeAtNextAscendingNode.
+    return vectorToAscendingNode.
 }

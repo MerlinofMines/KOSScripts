@@ -29,6 +29,35 @@ function trueAnomalyAt {
 	return trueAnomalyFromStateVectors(orbitalPosition, sourceVessel).
 }
 
+function timeAtNextStateVector {
+	parameter stateVector.
+	parameter sourceVessel IS SHIP.
+
+	//Calculate eccentricity vector.
+	//See this equation: https://en.wikipedia.org/wiki/Eccentricity_vector#Calculation
+	Local eccentricityVector Is getEccentricityVector(sourceVessel).
+
+	//Get True Anomaly of State Vector.
+	//See this equation: https://en.wikipedia.org/wiki/True_anomaly#From_state_vectors
+	Local trueAnomaly Is trueAnomalyFromStateVectors(stateVector).
+	Local meanAnomaly Is meanAnomalyFromTrueAnomaly(trueAnomaly, eccentricityVector:Mag).
+
+	//	Print "True anomaly: " + trueAnomaly.
+	//	Print "Mean Anomaly: " + meanAnomaly.
+
+	//Get Time to State Vector from Periapsis
+	Local t IS timeAtNextPeriapsis(sourceVessel) - sourceVessel:ORBIT:PERIOD.
+	Local n Is 360/sourceVessel:ORBIT:PERIOD.
+
+	Local timeAtNextMeanAnomaly Is meanAnomaly / n + t.
+
+	IF (timeAtNextMeanAnomaly < TIME:SECONDS) {
+		SET timeAtNextMeanAnomaly  TO timeAtNextMeanAnomaly  + sourceVessel:ORBIT:PERIOD.
+	}
+
+	return timeAtNextMeanAnomaly.
+}
+
 //See this equation: https://en.wikipedia.org/wiki/True_anomaly#From_state_vectors
 function trueAnomalyFromStateVectors {
 	parameter orbitalPosition.
