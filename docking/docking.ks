@@ -67,7 +67,7 @@ function dockWithPlan {
 
 	sourcePort:CONTROLFROM.
 
-	dock(sourcePort, targetPort).
+	dockUsingDockingPorts(sourcePort, targetPort).
 }
 
 function autoSelectDockingPort {
@@ -118,12 +118,28 @@ function dockWithTarget {
 
 	Local targetPort IS autoSelectDockingPort(targetVessel).
 
-	dock(sourcePort, targetPort).
+	dockUsingDockingPorts(sourcePort, targetPort).
+}
+
+function dockUsingDockingPorts {
+	parameter sourcePort.
+	parameter targetPort.
+
+	LOCAL sourcePositionSupplier IS {return sourcePort:NODEPOSITION.}.
+	LOCAL targetPositionSupplier IS {return targetPort:NODEPOSITION.}.
+	LOCAL sourceDirectionSupplier IS {return sourcePort:PORTFACING.}.
+	LOCAL targetDirectionSupplier IS {return targetPort:PORTFACING.}.
+	LOCAL dockedDetector IS {return isDocked(sourcePort).}.
+
+	dock(sourcePositionSupplier, targetPositionSupplier, sourceDirectionSupplier, targetDirectionSupplier, dockedDetector).
 }
 
 function dock {
-	parameter sourcePort.
-	parameter targetPort.	
+	parameter sourcePositionSupplier.
+	parameter targetPositionSupplier.
+	parameter sourceDirectionSupplier.
+	parameter targetDirectionSupplier.
+	parameter dockedDetector.
 
 	//Turn off RCS and translation control
 	SET SHIP:CONTROL:TRANSLATION TO V(0,0,0).
@@ -131,30 +147,30 @@ function dock {
 
 	SET refreshInterval TO 0.1.
 
-	SET previousTargetVector TO targetPort:NODEPOSITION - sourcePort:NODEPOSITION.
+	SET previousTargetVector TO targetPositionSupplier() - sourcePositionSupplier().
 
 	WAIT refreshInterval.
 
 	info("Moving to correct Orientation").
-	UNTIL (isDocked(sourcePort)) {
+	UNTIL (dockedDetector()) {
 		CLEARSCREEN.
 		CLEARVECDRAWS().
 
 //		PRINT("Dock State: " + sourcePort:STATE).
 
-		SET orientation TO -targetPort:PORTFACING:FOREVECTOR.
-		SET orientationDirection TO LOOKDIRUP(orientation, targetPort:PORTFACING:TOPVECTOR).
+		SET orientation TO -targetDirectionSupplier():FOREVECTOR.
+		SET orientationDirection TO LOOKDIRUP(orientation, targetDirectionSupplier():TOPVECTOR).
 		LOCK STEERING TO orientationDirection.
 
-		LOCAL targetVector IS targetPort:NODEPOSITION - sourcePort:NODEPOSITION.
+		LOCAL targetVector IS targetPositionSupplier() - sourcePositionSupplier().
 		LOCAL targetPrograde IS (previousTargetVector - targetVector).
 		SET previousTargetVector TO targetVector.
 
-		LOCAL desiredSpeed IS getDesiredSpeed(sourcePort, targetPort).
-		LOCAL desiredPrograde IS getDesiredPrograde(orientation, targetVector, desiredSpeed).
+		LOCAL desiredSpeed IS getDesiredDockingSpeed(sourcePositionSupplier(), targetPositionSupplier()).
+		LOCAL desiredPrograde IS getDesiredDockingPrograde(orientation, targetVector, desiredSpeed).
 
-//		SET targetProgradeDirection TO LOOKDIRUP(targetPrograde, targetPort:PORTFACING:TOPVECTOR).
-//		SET targetDirection TO LOOKDIRUP(targetVector, targetPort:PORTFACING:TOPVECTOR).
+//		SET targetProgradeDirection TO LOOKDIRUP(targetPrograde, targetDirectionSupplier():TOPVECTOR).
+//		SET targetDirection TO LOOKDIRUP(targetVector, targetDirectionSupplier():TOPVECTOR).
 
 //		Local navballDesiredDirection IS navball_direction(SHIP, orientationDirection).
 //		holdDesiredDirection(navballDesiredDirection).
@@ -165,25 +181,25 @@ function dock {
 
 		//Source Port Vectors
 	//	drawVector(orientation, "Orientation").
-	//	drawVector(targetVector, "Target Vector", sourcePORT:NODEPOSITION).
-	//	drawVector(desiredPrograde*30, "Desired Prograde", sourcePort:NODEPOSITION).
-	//	drawVector(targetPrograde*30, "TargetPrograde", sourcePort:NODEPOSITION).
-	//	drawDirection(targetProgradeDirection, "Prograde", sourcePort:NODEPOSITION).
+	//	drawVector(targetVector, "Target Vector", sourcePositionSupplier()).
+	//	drawVector(desiredPrograde*30, "Desired Prograde", sourcePositionSupplier()).
+	//	drawVector(targetPrograde*30, "TargetPrograde", sourcePositionSupplier()).
+	//	drawDirection(targetProgradeDirection, "Prograde", sourcePositionSupplier()).
 
-	//	drawDirection(sourcePort:PORTFACING, "Docking Port", sourcePort:NODEPOSITION).
-	//	drawDirection(targetDirection, "Target Direction", sourcePort:NODEPOSITION).
-	//	drawDirection(orientationDirection, "Orientation Direction", sourcePort:NODEPOSITION).
+	//	drawDirection(sourceDirectionSupplier(), "Docking Port", sourcePositionSupplier()).
+	//	drawDirection(targetDirection, "Target Direction", sourcePositionSupplier()).
+	//	drawDirection(orientationDirection, "Orientation Direction", sourcePositionSupplier()).
 
 		//Target Port Vectors
-	//	drawDirection(targetPort:PORTFACING, "Target Port", targetPort:NODEPOSITION).
-	//	drawVector(targetPort:PORTFACING:TOPVECTOR, "Target Top Vector", targetPort:NODEPOSITION).
+	//	drawDirection(targetDirectionSupplier(), "Target Port", targetPositionSupplier()).
+	//	drawVector(targetDirectionSupplier():TOPVECTOR, "Target Top Vector", targetPositionSupplier()).
 		
-	//	PRINT("Orientation Forevector: " + VANG(orientation,sourcePort:PORTFACING:FOREVECTOR)).
-	//	PRINT("Orientation TopVector: " + VANG(orientationDirection:TOPVECTOR, sourcePort:PORTFACING:TOPVECTOR)).
+	//	PRINT("Orientation Forevector: " + VANG(orientation,sourceDirectionSupplier():FOREVECTOR)).
+	//	PRINT("Orientation TopVector: " + VANG(orientationDirection:TOPVECTOR, sourceDirectionSupplier():TOPVECTOR)).
 	//	PRINT("Angular Momentum: " + SHIP:ANGULARMOMENTUM:MAG).
 
-		if ((VANG(orientation,sourcePort:PORTFACING:FOREVECTOR) < 0.5)
-		 AND (VANG(orientationDirection:TOPVECTOR, sourcePort:PORTFACING:TOPVECTOR) < 0.5)
+		if ((VANG(orientation,sourceDirectionSupplier():FOREVECTOR) < 0.5)
+		 AND (VANG(orientationDirection:TOPVECTOR, sourceDirectionSupplier():TOPVECTOR) < 0.5)
 		 AND SHIP:ANGULARMOMENTUM:MAG < 0.5) {
 //			Print("Oriented correctly").
 
@@ -205,9 +221,9 @@ function dock {
 			PRINT("Translation Change: " + deltaTranslation).
 			PRINT("Translation Change Mag: " + deltaTranslation:MAG).
 
-//			drawVector(desiredTranslation*100, "Desired Translation", sourcePort:NODEPOSITION).
-//			drawVector(currentTranslation*100, "Current Translation", sourcePort:NODEPOSITION).
-//			drawVector(deltaTranslation*100, "Translation Change Needed", sourcePort:NODEPOSITION).
+//			drawVector(desiredTranslation*100, "Desired Translation", sourcePositionSupplier()).
+//			drawVector(currentTranslation*100, "Current Translation", sourcePositionSupplier()).
+//			drawVector(deltaTranslation*100, "Translation Change Needed", sourcePositionSupplier()).
 
 			//Up/Down
 			if(abs(deltaTranslation:Y) > 0.001) {
@@ -281,7 +297,7 @@ function getOrientedTranslation {
 	return V(foreTranslation, topTranslation, starTranslation).
 }
 
-function getSourcedockingPort {
+function getSourceDockingPort {
 	parameter dockingPortTag.
 	return getVesselDockingPort(SHIP, dockingPortTag).
 }
@@ -301,7 +317,7 @@ function getVesselDockingPort {
 	return targetVessel:PartsTagged(dockingPortTag)[0].
 }
 
-function getDesiredPrograde {
+function getDesiredDockingPrograde {
 	parameter orientationVector.
 	parameter targetVector.
 	parameter desiredSpeed.
@@ -317,11 +333,11 @@ function getDesiredPrograde {
 	return desiredPrograde.
 }
 
-function getDesiredSpeed {
-	parameter sourcePort.
-	parameter targetPort.
+function getDesiredDockingSpeed {
+	parameter sourcePosition.
+	parameter targetPosition.
 
-	LOCAL distance IS (targetPort:NodePosition - sourcePort:NodePosition):MAG.
+	LOCAL distance IS (targetPosition - sourcePosition):MAG.
 
 	if (distance > 50) {
 		return 0.1.

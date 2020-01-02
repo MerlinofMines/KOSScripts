@@ -85,7 +85,7 @@ function dockOnPortTask {
     parameter targetPort.
 
     Local taskName IS "Docking with " + targetVessel:SHIPNAME.
-    Local delegate IS dock@:bind(sourcePort, targetPort).
+    Local delegate IS dockUsingDockingPorts@:bind(sourcePort, targetPort).
 
     return getTask(taskName, delegate).
 }
