@@ -1,4 +1,4 @@
-RUNONCEPATH("0:/docking.ks").
+RUNONCEPATH("0:/docking/docking.ks").
 RUNONCEPATH("0:/ui/tab_widget.ks").
 RUNONCEPATH("0:/missionControl/mission.ks").
 
