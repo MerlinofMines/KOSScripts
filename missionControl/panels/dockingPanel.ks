@@ -1,4 +1,5 @@
 RUNONCEPATH("0:/docking/docking.ks").
+RUNONCEPATH("0:/docking/grabbing.ks").
 RUNONCEPATH("0:/ui/tab_widget.ks").
 RUNONCEPATH("0:/missionControl/mission.ks").
 
@@ -9,14 +10,74 @@ function dockingTab {
     Local dockingCategory IS addTab(taskCategories, "Docking", FALSE).
     Local dockingOptions IS addTabWidget(dockingCategory, TRUE).
 
-    Local dockOnPortTab IS addTab(dockingOptions, "Dock", TRUE).
-    dockOnPortPanel(dockOnPortTab).
-
+    dockOnPortPanel(dockingOptions).
     undockPanel(dockingOptions).
+
+    grabPanel(dockingOptions).
+}
+
+function grabPanel {
+    parameter dockingOptions.
+
+    Local panel IS addTab(dockingOptions, "Grab", TRUE).
+
+    LOCAL grabbers IS getGrabbers(SHIP).
+
+    LOCAL label IS panel:ADDLABEL("Source Grabber").
+    LOCAL sourcePortPopup is panel:addPopupMenu().
+
+    for option IN grabbers {
+        sourcePortPopup:addoption(option).
+    }
+
+    SET grabbableTargets TO getDockableTargets(SHIP).
+
+    LOCAL label IS panel:ADDLABEL("Target").
+    LOCAL targetPopup is panel:addPopupMenu().
+
+    LOCAL label IS panel:ADDLABEL("Target Part").
+    LOCAL targetPartPopup IS panel:addPopupMenu().
+
+    for option IN grabbableTargets {
+        targetPopup:addoption(option).
+    }
+
+    PRINT "Grabbable Targets: " + grabbableTargets.
+
+    if grabbableTargets:LENGTH > 0 {
+        SET targetPartPopup:OPTIONS TO getGrabbableParts(grabbableTargets[0]).
+    }
+
+    SET targetPopup:ONCHANGE TO {
+        parameter choice.
+        SET targetPartPopup:OPTIONS TO getGrabbableParts(choice).
+    }.
+
+    Local grabButton IS panel:ADDBUTTON("Grab").
+
+    SET grabButton:ONCLICK TO {
+        addMissionTask(grabTask(sourcePortPopup:VALUE, targetPopup:VALUE, targetPartPopup:VALUE)).
+        activateButton(grabButton).
+    }.
+}
+
+function getGrabbableParts {
+    parameter targetVessel.
+
+    LOCAL grabbableParts IS list().
+
+    for part IN targetVessel:PARTS {
+        grabbableParts:ADD(part).
+    }
+
+    return grabbableParts.
 }
 
 function dockOnPortPanel {
-    parameter panel.
+    parameter dockingOptions.
+
+    Local panel IS addTab(dockingOptions, "Dock", TRUE).
+
     LOCAL dockingPorts IS getDockablePorts(SHIP).
 
     LOCAL label IS panel:ADDLABEL("Source Port").
@@ -41,7 +102,6 @@ function dockOnPortPanel {
     if dockableTargets:LENGTH > 0 {
         SET targetPortPopup:OPTIONS TO getDockablePorts(dockableTargets[0]).
     }
-
 
     SET targetPopup:ONCHANGE TO {
         parameter choice.
@@ -77,6 +137,17 @@ function undockPanel {
         })).
         activateButton(executeButton).
     }.
+}
+
+function grabTask {
+    parameter sourceGrabber.
+    parameter targetVessel.
+    parameter targetPart.
+
+    Local taskName IS "Grabbing " + targetVessel:SHIPNAME.
+    Local delegate IS grabPartUsingGrabber@:bind(sourceGrabber, targetPart).
+
+    return getTask(taskName, delegate).
 }
 
 function dockOnPortTask {

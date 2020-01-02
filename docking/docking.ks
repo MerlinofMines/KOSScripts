@@ -132,6 +132,8 @@ function dockUsingDockingPorts {
 	LOCAL dockedDetector IS {return isDocked(sourcePort).}.
 
 	dock(sourcePositionSupplier, targetPositionSupplier, sourceDirectionSupplier, targetDirectionSupplier, dockedDetector).
+
+	info("Docked Successfully").
 }
 
 function dock {
@@ -265,9 +267,6 @@ function dock {
 
 	CLEARSCREEN.
 	CLEARVECDRAWS().
-
-	info("Docked Successfully").
-
 }
 
 function getOrientedTranslation {
