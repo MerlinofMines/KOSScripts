@@ -31,12 +31,55 @@ function systemsTab {
 
     fairingTabPanel(shipOptions).
 
+    grabberTabPanel(shipOptions).
+
     engineTabPanel(shipOptions).
 
     sasTabPanel(shipOptions).
 
     Local agTab IS addTab(shipOptions, "Action Groups", TRUE).
     agTabPanel(agTab).
+}
+
+function grabberTabPanel {
+    parameter panel.
+
+    LOCAL grabbers IS getGrabbers().
+
+    IF grabbers:LENGTH = 0 return.
+
+    LOCAL grabberTab IS addTab(panel, "Grabbers", TRUE).
+
+    LOCAL popup is grabberTab:addPopupMenu().
+    SET popup:OPTIONSUFFIX to "TITLE".
+
+    for option IN grabbers {
+        popup:addoption(option).
+    }
+
+    Local armButton IS grabberTab:ADDBUTTON("Arm").
+    SET armButton:ONCLICK TO {
+        addMissionTask(getTask("Arm " + popup:VALUE:NAME, {
+            armGrabber(popup:VALUE).
+        })).
+        activateButton(armButton).
+    }.
+
+    Local disarmButton IS grabberTab:ADDBUTTON("Disarm").
+    SET disarmButton:ONCLICK TO {
+        addMissionTask(getTask("Disarm " + popup:VALUE:NAME, {
+            disarmGrabber(popup:VALUE).
+        })).
+        activateButton(disarmButton).
+    }.
+
+    Local releaseButton IS grabberTab:ADDBUTTON("Release").
+    SET releaseButton:ONCLICK TO {
+        addMissionTask(getTask("Release " + popup:VALUE:NAME, {
+            releaseGrabber(popup:VALUE).
+        })).
+        activateButton(releaseButton).
+    }.
 }
 
 function fairingTabPanel {
