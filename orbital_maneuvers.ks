@@ -62,6 +62,7 @@ function matchOrbitalRadiusWithManeuverThrottleController {
 	LOCAL dv0 IS previousState["V"].
 
 	//If the lexicon isn't empty, or we're below 5% remaining dV, then we're fine tuning
+	//TODO: Consider using deltaVRemainingWithDelegateThrottleController.
 	IF previousState:LENGTH > 1 OR (nd:deltav:mag/dv0:mag) < 0.05 {
 		PRINT "Using Match Orbital Radius Throttle Controller".
 		return matchOrbitalRadiusThrottleController(previousState, desiredRadius, orbitalRadiusSupplier).

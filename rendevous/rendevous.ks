@@ -352,11 +352,12 @@ function matchInclination {
         return.
     }
 
-    LOCAL throttleController IS matchInclinationThrottleController@:bind(lexicon()):bind(targetOrbital).
+    LOCAL matchInclinationController IS matchInclinationThrottleController@:bind(lexicon()):bind(targetOrbital).
 
     LOCAL nd IS relativeInclinationBurnManeuverNode(targetOrbital).
     ADD nd.
 
+    LOCAL throttleController IS deltaVRemainingWithDelegateThrottleControllerFactory(matchInclinationController, nd).
     executeNextManeuverWithController(throttleController).
 
     PRINT "Inclination Burn Complete.".
@@ -371,6 +372,7 @@ function matchInclinationThrottleController {
 
     if (NOT previousState:HASKEY("I")) {
         SET previousState["I"] TO relativeInclination(targetOrbital:ORBIT).
+        SET previousState["T"] TO TIME:SECONDS.
         SET previousState["H"] TO THROTTLE.
         WAIT 0.1.
         return THROTTLE.//TODO: How can we calculate this?
@@ -384,6 +386,7 @@ function matchInclinationThrottleController {
     PRINT "New Relative Inclination: " + newRelI.
 
     SET previousState["I"] TO newReli.
+    SET previousState["T"] TO TIME:SECONDS.
 
     if (newRelI - relI > relI*0.01){
         return -1.

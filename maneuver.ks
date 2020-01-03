@@ -8,6 +8,7 @@ function executeNextManeuver {
 
 function executeNextManeuverWithController {
     parameter throttleController.
+    parameter minBurnTime IS 3. //Minimum burn time, prevents innacurate short burns
 
     // Get Next Maneuver
     SET n TO NEXTNODE.
@@ -15,6 +16,20 @@ function executeNextManeuverWithController {
     SET deltaV to n:BURNVECTOR:MAG.
 
     LOCAL t IS calculateHalfBurnDuration(deltaV).
+    LOCAL throttleLimit IS 1.0.
+
+    SET activeEngines TO getActiveEngines().
+
+    //Very Short Burns tend to be innaccurate, so adjust our throttle limits on active engines before execution to lower thrust limits and extend burn time, if needed.
+    if (t < minBurnTime / 2) {
+        SET throttleLimit TO  t / (minBurnTime / 2).
+
+        for engine IN activeEngines {
+            SET engine:THRUSTLIMIT TO engine:THRUSTLIMIT * throttleLimit.
+        }
+
+        SET t TO calculateHalfBurnDuration(deltaV).
+    }
 
     // Set the start and end times.
     SET start_time TO TIME:SECONDS + n:ETA - t.
@@ -39,9 +54,14 @@ function executeNextManeuverWithController {
     //Start Node Execution, continue until Delta V is exhausted.
     maneuverBurn(throttleController).
 
+    SET throttle TO 0.
+
     REMOVE n.
 
-    SET throttle TO 0.
+    //Reset Throttle Limits.
+    for engine IN activeEngines {
+        SET engine:THRUSTLIMIT TO engine:THRUSTLIMIT / throttleLimit.
+    }
 }
 
 //Throttle Controller allows us to burn through maneuvers which are trying to optimize different attributes besides
@@ -70,6 +90,36 @@ function maneuverBurn {
     PRINT "Maneuver Complete".
 }
 
+//Note, this is a factory for a controller, not an actual controller.
+function deltaVRemainingWithDelegateThrottleControllerFactory {
+    parameter delegateController.
+    parameter nd.
+    parameter deltaVRemainingPercentage IS 0.05.
+
+    LOCAL dv0 IS nd:deltav.
+    LOCAL conditional IS { return (nd:deltav:mag/dv0:mag) < deltaVRemainingPercentage. }.
+
+    LOCAL deltaVRemainingController IS deltaVRemainingThrottleController@:bind(lexicon()):bind(nd).
+
+    return conditionalThrottleController@:bind(delegateController):bind(deltaVRemainingController):bind(conditional).
+}
+
+function conditionalThrottleController {
+    parameter matchesThrottleController.
+    parameter otherwiseThrottleController.
+    parameter conditional.
+
+    Print "Using conditional Controller".
+
+    if (conditional()) {
+        Print "Condition Matches, using matches controller".
+        return matchesThrottleController().
+    } else {
+        Print "Condition Does Not Match, using otherwise controller".
+        return otherwiseThrottleController().
+    }
+}
+
 function delegateThrottleController {
     parameter delegateController.
 
@@ -88,26 +138,13 @@ function deltaVRemainingThrottleController {
     LOCAL dv0 IS previousState["V"].
 
     //recalculate current max_acceleration, as it changes while we burn through fuel
-    set max_acc to ship:maxthrust/ship:mass.
+    set max_acc to SHIP:AVAILABLETHRUST/SHIP:MASS.
 
     //here's the tricky part, we need to cut the throttle as soon as our nd:deltav and initial deltav start facing opposite directions
     //this check is done via checking the dot product of those 2 vectors
     if vdot(dv0, nd:deltav) < 0
     {
-        print "End burn, remain dv " + round(nd:deltav:mag,1) + "m/s, vdot: " + round(vdot(dv0, nd:deltav),1).
-        return -1.
-    }
-
-    //we have very little left to burn, less then 0.1m/s
-    if nd:deltav:mag < 0.1
-    {
-        print "Finalizing burn, remain dv " + round(nd:deltav:mag,1) + "m/s, vdot: " + round(vdot(dv0, nd:deltav),1).
-    //we burn slowly until our node vector starts to drift significantly from initial vector
-    //this usually means we are on point
-        wait until vdot(dv0, nd:deltav) < 0.5.
-
-        print "End burn, remain dv " + round(nd:deltav:mag,1) + "m/s, vdot: " + round(vdot(dv0, nd:deltav),1).
-
+        print "End burn, remain dv " + round(nd:deltav:mag,3) + "m/s, vdot: " + round(vdot(dv0, nd:deltav),3).
         return -1.
     }
 
@@ -171,6 +208,21 @@ function calculateAvailableThrustForEngines {
 
     return eThrust.
 }
+
+function getActiveEngines {
+    SET activeEngines TO list().
+
+    LIST ENGINES in myEngines.
+
+    for eng IN myEngines {
+        if (eng:IGNITION) {
+            activeEngines:ADD(eng).
+        }
+    }
+
+    return activeEngines.
+}
+
 
 function calculateBurnDurationFromEngineThrust {
     parameter eIsp.
