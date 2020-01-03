@@ -42,8 +42,6 @@ function grabPanel {
         targetPopup:addoption(option).
     }
 
-    PRINT "Grabbable Targets: " + grabbableTargets.
-
     if grabbableTargets:LENGTH > 0 {
         SET targetPartPopup:OPTIONS TO getGrabbableParts(grabbableTargets[0]).
     }
@@ -131,10 +129,10 @@ function undockPanel {
 
     Local executeButton IS undockTab:ADDBUTTON("Undock Port").
     SET executeButton:ONCLICK TO {
-        addMissionTask(getTask("Undock " + popup:VALUE:TOSTRING + " Docking Port", {
+        addMissionTask(getTask("Undock " + popup:VALUE:NAME, {
             PRINT "Undocking " + popup:VALUE:TOSTRING + "Docking Port".
             popup:VALUE:UNDOCK().
-        })).
+        }, "Undock " + popup:VALUE:TOSTRING + " Docking Port")).
         activateButton(executeButton).
     }.
 }

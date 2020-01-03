@@ -8,6 +8,7 @@ RUNONCEPATH("0:/ssto/ssto_steering.ks").
 function sstoLaunch {
     parameter primaryEngines.
     parameter secondaryEngines IS list().
+    parameter sicoCutoff IS 69000.
 
     CLEARSCREEN.
 
@@ -77,7 +78,7 @@ function sstoLaunch {
     SET AG2 TO TRUE.
 
     SET switchMode TO FALSE.
-    UNTIL APOAPSIS > 69000 {
+    UNTIL APOAPSIS > sicoCutoff {
 
         IF (ALTITUDE > 26000 AND switchMode = FALSE) {
             shortInfo("Switching Rapiers Mode.").

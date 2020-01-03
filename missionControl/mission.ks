@@ -15,7 +15,8 @@ function refreshActiveTasks {
     Local taskIterator IS MISSION_TASK_LIST:COPY:ITERATOR.
 
     UNTIL NOT taskIterator:NEXT {
-        LOCAL taskBox IS missionBox:AddHBox().
+        LOCAL outerBox IS missionBox:ADDVBox().
+        LOCAL taskBox IS outerBox:AddHBox().
         LOCAL index IS taskIterator:INDEX.
 
         //Action Box
@@ -63,6 +64,35 @@ function refreshActiveTasks {
         Local missionlabel IS getTaskName(taskIterator:VALUE).
 
         taskBox:AddLabel(missionlabel).
+
+        //Detail Box
+        LOCAL detailBox IS outerBox:ADDHBox().
+        SET detailBox:VISIBLE TO FALSE.
+
+        detailBox:ADDLABEL(getTaskDetail(taskIterator:VALUE)).
+
+        //Detail Button
+        LOCAL showDetailButton IS taskBox:ADDBUTTON(">").
+        LOCAL hideDetailButton IS taskBox:ADDBUTTON("^").
+
+        SET hideDetailButton:VISIBLE TO FALSE.
+
+        SET showDetailButton:STYLE:WIDTH TO 20.
+        SET showDetailButton:STYLE:MARGIN:RIGHT TO 5.
+        SET hideDetailButton:STYLE:WIDTH TO 20.
+        SET hideDetailButton:STYLE:MARGIN:RIGHT TO 5.
+
+        SET showDetailButton:ONCLICK TO {
+            SET showDetailButton:VISIBLE TO FALSE.
+            SET hideDetailButton:VISIBLE TO TRUE.
+            SET detailBox:VISIBLE TO TRUE.
+        }.
+
+        SET hideDetailButton:ONCLICK TO {
+            SET showDetailButton:VISIBLE TO TRUE.
+            SET hideDetailButton:VISIBLE TO FALSE.
+            SET detailBox:VISIBLE TO FALSE.
+        }.
     }
 
     IF MISSION_TASK_LIST:LENGTH > 1 {
@@ -173,8 +203,9 @@ function executeMission {
 function getTask {
     parameter name.
     parameter delegate.
+    parameter detail IS name.
 
-    return list(name, delegate).
+    return list(name, delegate, detail).
 }
 
 function getTaskName {
@@ -185,4 +216,9 @@ function getTaskName {
 function getTaskDelegate {
     parameter task.
     return task[1].
+}
+
+function getTaskDetail {
+    parameter task.
+    return task[2].
 }

@@ -21,26 +21,35 @@ function sstoLaunchPanel {
     SET launchButton:ONCLICK TO {
         LOCAL primaryEngines IS getPrimaryEngines().
         LOCAL secondaryEngines IS getSecondaryEngines().
+        LOCAL sicoCutoff IS 69000. //TODO: Make an input value.
 
         IF primaryEngines:EMPTY {
             PRINT "Please select at least one primary engine.".
             return.
         }
 
-        PRINT "Circularizing Prograde using the following settings:".
-        PRINT "Primary Engines: ".
-        PRINT primaryEngines.
-        PRINT "Secondary Engines: ".
-        PRINT secondaryEngines.
-
-        addMissionTask(sstoLaunchTask(primaryEngines, secondaryEngines)).
+        addMissionTask(sstoLaunchTask(primaryEngines, secondaryEngines, sicoCutoff)).
     }.
 }
 
 function sstoLaunchTask {
     parameter primaryEngines.
     parameter secondaryEngines.
+    parameter sicoCutoff.
 
-    Local delegate IS sstoLaunch@:bind(primaryEngines):bind(secondaryEngines).
-    return getTask("SSTO Launch", delegate).
+    Local delegate IS sstoLaunch@:bind(primaryEngines):bind(secondaryEngines):bind(sicoCutoff).
+    return getTask("SSTO Launch", delegate, getSSTOLaunchTaskDetail(primaryEngines, secondaryEngines, sicoCutoff)).
+}
+
+function getSSTOLaunchTaskDetail {
+    parameter primaryEngines.
+    parameter secondaryEngines.
+    parameter sicoCutoff.
+
+    PRINT "Terminal Input: " + Terminal:INPUT:RETURN + ":" + Terminal:INPUT:RETURN.
+    LOCAL detailString IS "SICO Cutoff Apoapsis: " + sicoCutoff + char(10) + char(10).
+    SET detailString TO detailString + "Primary Engines: " + char(10) + primaryEngines + char(10) + char(10).
+    SET detailString TO detailString + "Secondary Engines: " + char(10) + secondaryEngines + char(10) + char(10).
+
+    return detailString.
 }
