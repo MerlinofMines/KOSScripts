@@ -30,7 +30,7 @@ function grabPanel {
         sourcePortPopup:addoption(option).
     }
 
-    SET grabbableTargets TO getDockableTargets(SHIP).
+    LIST TARGETS IN grabbableTargets.
 
     LOCAL label IS panel:ADDLABEL("Target").
     LOCAL targetPopup is panel:addPopupMenu().
@@ -42,20 +42,67 @@ function grabPanel {
         targetPopup:addoption(option).
     }
 
+    SET customPanel TO panel:ADDHBOX().
+
+    SET customLabel TO customPanel:ADDLABEL("Dubbed Pattern: ").
+    SET customEntry TO customPanel:ADDTEXTFIELD().
+
+    SET customMessage TO panel:ADDLABEL("Please specify a dubbed pattern").
+    customMessage:HIDE().
+
     if grabbableTargets:LENGTH > 0 {
         SET targetPartPopup:OPTIONS TO getGrabbableParts(grabbableTargets[0]).
+
+        SET targetPartPopup:INDEX TO 0.
+
+        IF targetPartPopup:VALUE = "Custom" {
+            customPanel:SHOW().
+        } ELSE {
+            customPanel:HIDE().
+        }
     }
 
     SET targetPopup:ONCHANGE TO {
         parameter choice.
         SET targetPartPopup:OPTIONS TO getGrabbableParts(choice).
+
+        PRINT "Current Option: " + targetPartPopup:VALUE.
+
+        SET targetPartPopup:INDEX TO 0.
+
+        IF targetPartPopup:VALUE = "Custom" {
+            customPanel:SHOW().
+        } ELSE {
+            customPanel:HIDE().
+        }
+    }.
+
+    SET targetPartPopup:ONCHANGE TO {
+        parameter choice.
+
+        IF targetPartPopup:VALUE = "Custom" {
+            customPanel:SHOW().
+        } ELSE {
+            customPanel:HIDE().
+        }
     }.
 
     Local grabButton IS panel:ADDBUTTON("Grab").
 
     SET grabButton:ONCLICK TO {
-        addMissionTask(grabTask(sourcePortPopup:VALUE, targetPopup:VALUE, targetPartPopup:VALUE)).
-        activateButton(grabButton).
+
+        IF targetPartPopup:VALUE = "Custom" {
+            IF customEntry:TEXT:TRIM:LENGTH = 0 {
+                customMessage:SHOW().
+            } else {
+                customMessage:HIDE().
+                addMissionTask(grabDubbedTask(sourcePortPopup:VALUE, targetPopup:VALUE, customEntry:TEXT)).
+                activateButton(grabButton).
+            }
+        } else {
+            addMissionTask(grabTask(sourcePortPopup:VALUE, targetPopup:VALUE, targetPartPopup:VALUE)).
+            activateButton(grabButton).
+        }
     }.
 }
 
@@ -64,9 +111,16 @@ function getGrabbableParts {
 
     LOCAL grabbableParts IS list().
 
-    for part IN targetVessel:PARTS {
-        grabbableParts:ADD(part).
+    Print "Target Vessel: " + targetVessel.
+    PRINT targetVessel:UNPACKED.
+
+    if targetVessel:UNPACKED {
+        for part IN targetVessel:PARTS {
+            grabbableParts:ADD(part).
+        }
     }
+
+    grabbableParts:ADD("Custom").
 
     return grabbableParts.
 }
@@ -146,6 +200,18 @@ function grabTask {
     Local delegate IS grabPartUsingGrabber@:bind(sourceGrabber, targetPart).
 
     return getTask(taskName, delegate).
+}
+
+function grabDubbedTask {
+    parameter sourceGrabber.
+    parameter targetVessel.
+    parameter partDubbedPattern.
+
+    Local taskName IS "Grabbing " + targetVessel:SHIPNAME.
+    Local delegate IS grabDubbedPartUsingGrabber@:bind(sourceGrabber, targetVessel, partDubbedPattern).
+
+    LOCAL taskDetail IS "Grabbing " + targetVessel:SHIPNAME + "on the closest part dubbed " + partDubbedPattern.
+    return getTask(taskName, delegate, taskDetail).
 }
 
 function dockOnPortTask {

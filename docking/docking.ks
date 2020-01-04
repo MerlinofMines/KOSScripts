@@ -196,9 +196,9 @@ function dock {
 	//	drawDirection(targetDirectionSupplier(), "Target Port", targetPositionSupplier()).
 	//	drawVector(targetDirectionSupplier():TOPVECTOR, "Target Top Vector", targetPositionSupplier()).
 		
-	//	PRINT("Orientation Forevector: " + VANG(orientation,sourceDirectionSupplier():FOREVECTOR)).
-	//	PRINT("Orientation TopVector: " + VANG(orientationDirection:TOPVECTOR, sourceDirectionSupplier():TOPVECTOR)).
-	//	PRINT("Angular Momentum: " + SHIP:ANGULARMOMENTUM:MAG).
+		PRINT("Orientation Forevector: " + VANG(orientation,sourceDirectionSupplier():FOREVECTOR)).
+		PRINT("Orientation TopVector: " + VANG(orientationDirection:TOPVECTOR, sourceDirectionSupplier():TOPVECTOR)).
+		PRINT("Angular Momentum: " + SHIP:ANGULARMOMENTUM:MAG).
 
 		if ((VANG(orientation,sourceDirectionSupplier():FOREVECTOR) < 0.5)
 		 AND (VANG(orientationDirection:TOPVECTOR, sourceDirectionSupplier():TOPVECTOR) < 0.5)

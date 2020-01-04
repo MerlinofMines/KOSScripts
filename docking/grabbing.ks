@@ -1,6 +1,24 @@
 RUNONCEPATH("0:/docking/docking.ks").
 RUNONCEPATH("0:/systems/grabber.ks").
 RUNONCEPATH("0:/output.ks").
+RUNONCEPATH("0:/systems/parts.ks").
+
+function grabDubbedPartUsingGrabber {
+    parameter sourceGrabber.
+    parameter targetVessel.
+    parameter targetPartDubbed.
+
+    LOCAL dubbedParts IS targetVessel:PARTSDUBBEDPATTERN(targetPartDubbed).
+
+    if dubbedParts:LENGTH = 0 {
+        PRINT "No parts on vessel ( " + targetVessel: ") matching dub pattern: " + targetPartDubbed.
+        return.
+    }
+
+    LOCAL closestPart IS getClosestPart(dubbedParts, sourceGrabber:POSITION ).
+
+    grabPartUsingGrabber(sourceGrabber, closestPart).
+}
 
 function grabPartUsingGrabber {
     parameter sourceGrabber.
@@ -25,4 +43,3 @@ function grabPartUsingGrabber {
 
     info("Grabbed Successfully").
 }
-

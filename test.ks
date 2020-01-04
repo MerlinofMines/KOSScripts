@@ -1,6 +1,7 @@
 RUNONCEPATH("0:/landing/rocket_landing.ks").
 RUNONCEPATH("0:/launch/rocket_launch.ks").
 RUNONCEPATH("0:/rendevous/encounter.ks").
+RUNONCEPATH("0:/docking/grabbing.ks").
 
 //fromKSP().
 //fromMun().
@@ -8,8 +9,18 @@ RUNONCEPATH("0:/rendevous/encounter.ks").
 
 //doit().
 
-encounter_burn(BODY("Mun") ,7000).
+//encounter_burn(BODY("Mun") ,7000).
 
+testGrabberPartDubbed().
+
+function testGrabberPartDubbed {
+    LOCAL grabber IS getGrabbers()[0].
+
+    LOCAL targetVessel IS VESSEL("Merlin Mark I - Front Carrier Ship").
+
+    grabDubbedPartUsingGrabber(grabber, targetVessel, "Lab").
+
+}
 
 function encounter_burn {
     parameter targetBody.
