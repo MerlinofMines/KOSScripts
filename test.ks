@@ -9,9 +9,9 @@ RUNONCEPATH("0:/docking/grabbing.ks").
 
 //doit().
 
-//encounter_burn(BODY("Mun") ,7000).
+encounter_burn(BODY("Mun") ,7000).
 
-testGrabberPartDubbed().
+//testGrabberPartDubbed().
 
 function testGrabberPartDubbed {
     LOCAL grabber IS getGrabbers()[0].
@@ -26,7 +26,7 @@ function encounter_burn {
     parameter targetBody.
     parameter targetCaptureRadius.
 
-    LOCAL throttleController IS encounterThrottleController@:bind(lexicon()):bind(targetBody):bind(targetCaptureRadius):bind(matchApoapsisThrottleController@:bind(lexicon()):bind(12000000)).
+    LOCAL throttleController IS encounterThrottleController@:bind(lexicon()):bind(targetBody):bind(targetCaptureRadius):bind(false):bind(matchApoapsisThrottleController@:bind(lexicon()):bind(12000000)).
 
     executeNextManeuverWithController(throttleController).
     shortInfo("Hohmann Transfer Complete").

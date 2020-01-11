@@ -94,6 +94,12 @@ function encounterPanel {
     LOCAL infoLabel IS panel:ADDLABEL("Capture Radius:").
     LOCAL captureRadiusField IS panel:ADDTEXTFIELD("").
 
+    LOCAL inclinationLabel IS panel:ADDLABEL("Inclination: ").
+    LOCAL inclinationBox IS panel:ADDHBOX().
+    SET inclinationBox:STYLE:ALIGN TO "CENTER".
+    LOCAL positiveInclination IS inclinationBox:ADDRADIOBUTTON("Positive", true).
+    LOCAL negativeInclination IS inclinationBox:ADDRADIOBUTTON("Negative", false).
+
     Local encounterButton IS panel:ADDBUTTON("Encounter").
 
     SET encounterButton:ONCLICK TO {
@@ -104,7 +110,7 @@ function encounterPanel {
             SET infoLabel:TEXT TO "Please Enter a valid capture radius:".
         } ELSE {
             SET infoLabel:TEXT TO "Capture Radius:".
-            addMissionTask(encounterTask(encounterBody,captureRadius)).
+            addMissionTask(encounterTask(encounterBody, captureRadius, inclinationBox:RADIOVALUE)).
             activateButton(encounterButton).
         }
     }.
@@ -126,8 +132,17 @@ function matchInclinationTask {
 function encounterTask {
     parameter encounterBody.
     parameter captureRadius.
+    parameter inclinationValue.
 
-    Local delegate IS encounter@:bind(encounterBody):bind(captureRadius).
-    return getTask("Encounter with " + encounterBody:NAME+" @ " + captureRadius +"m", delegate).
+    LOCAL positiveInclination IS (inclinationValue = "Positive").
+
+    Local delegate IS encounter@:bind(encounterBody):bind(captureRadius):bind(positiveInclination).
+    return getTask("Encounter with " + encounterBody:NAME+" @ " + captureRadius +"m", delegate,
+        "Encounter with " + encounterBody:NAME + char(10) +
+        "Capture Radius: " + captureRadius + char(10) +
+        "Inclination: " + inclinationValue + char(10) + char(10) +
+        "Note: Positive means in periapsis will be in " + char(10) +
+        "front of the encountered body as seen from " + char(10) +
+        "parent of the encountered body.").
 }
 

@@ -93,11 +93,17 @@ function matchOrbitalRadiusThrottleController {
 
 	//First Iteration, set up state and return 100%.
 	IF NOT previousState:HASKEY("R") {
+		LOCAL desiredThrottle IS THROTTLE.
+
+		IF desiredThrottle = 0 {
+			SET desiredThrottle TO 1.0.//If we aren't burning, then start burning.  Otherwise use existing throttler.
+		}
+
 		SET previousState["R"] TO orbitalRadiusSupplier().
 		SET previousState["T"] TO TIME:SECONDS.
-		SET previousState["H"] TO 1.
+		SET previousState["H"] TO desiredThrottle.
 		WAIT 0.1.//We wait a little longer on the first iteration, as we are expecting it to take time for us to start burning.
-		return 1.
+		return desiredThrottle.
 	}
 
 	LOCAL previousRadius IS previousState["R"].
@@ -111,11 +117,16 @@ function matchOrbitalRadiusThrottleController {
 	LOCAL timeChange IS newTime - previousTime.
 	LOCAL radiusChangeRate IS radiusChange/timeChange.
 
+	IF radiusChangeRate = 0 AND previousThrottle > 1 {
+		//Weird edge case where it doesn't correctly update.  Just ignore this.
+		WAIT 0.1.
+		return previousThrottle.
+	}
+
 	PRINT "Old Radius: " + previousRadius.
 	PRINT "New Radius: " + newRadius.
 	PRINT "Desired Radius: " + desiredRadius.
 	PRINT "Radius change rate: " + radiusChangeRate.
-
 
 	LOCAL timeToDesiredRadius IS (desiredRadius-newRadius)/(radiusChangeRate).
 

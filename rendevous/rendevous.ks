@@ -41,7 +41,7 @@ function finalApproach {
     parameter targetVessel.
     parameter sourceVessel Is SHIP.
 
-//Step 1: Calculate
+    //Step 1: Calculate
     shortInfo("Calculating separation distance at final approach.").
     Local separationTime IS timeOfMinimumSeparation(targetVessel, sourceVessel, timeAtNextApoapsis(sourceVessel)).
 

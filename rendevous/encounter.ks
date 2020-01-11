@@ -5,6 +5,7 @@ RUNONCEPATH("0:/orbital_maneuvers.ks").
 function encounter {
     parameter targetBody.
     parameter targetCaptureRadius.
+    parameter positiveInclination IS TRUE.//Positive or negative inclination?  Essentially, which side of the encountered body do you want your periapsis to be on? (Postive = in front of, negative = behind)
 
     longInfo("Beginning Encounter with " + targetBody).
 
@@ -17,7 +18,7 @@ function encounter {
     circularizeMaintainingApoapsis().
 
     info("Initiating Hohmann Transfer").
-    LOCAL throttleController IS encounterThrottleController@:bind(lexicon()):bind(targetBody):bind(targetCaptureRadius).
+    LOCAL throttleController IS encounterThrottleController@:bind(lexicon()):bind(targetBody):bind(targetCaptureRadius):bind(positiveInclination).
     hohmannTransfer(targetBody, throttleController).
 
     info("Warping to Target Sphere of Influence").
@@ -36,6 +37,7 @@ function encounterThrottleController {
     parameter previousState.
     parameter targetBody.
     parameter desiredPe. //Periapsis of encountered body
+    parameter positiveInclination.//Positive or negative inclination?  Essentially, which side of the encountered body do you want your periapsis to be on? (Postive = in front of, negative = behind)
     parameter delegateController. //Without an encounter, use this controller delegate.
 
     if NOT SHIP:ORBIT:HASNEXTPATCH {
@@ -47,81 +49,22 @@ function encounterThrottleController {
     }
 
     PRINT "Detected Correct Encounter.".
+    LOCAL orbitalRadiusSupplier IS encounterOrbitalPeriapsis@:bind(SHIP:ORBIT:NEXTPATCH):bind(desiredPe):bind(positiveInclination).
 
-    //See if this is the first time we detected the encounter, reset state and begin calculating new throttle
-    IF NOT previousState:HASKEY("E") {
-        LOCAL previousThrottle IS THROTTLE.
-        SET previousState["E"] TO TRUE.
-        SET previousState["H"] TO previousThrottle.
-        SET previousState["T"] TO TIME:SECONDS.
-        SET previousState["P"] TO SHIP:ORBIT:NEXTPATCH:PERIAPSIS.
-        SET previousState["I"] TO SHIP:ORBIT:NEXTPATCH:INCLINATION.
+    return matchOrbitalRadiusThrottleController(previousState, desiredPe, orbitalRadiusSupplier).
+}
 
-        //TODO: previousThrottle may be too high in some cases, not sure yet, as is waiting 0.01. sec.
-        WAIT 0.01.
-        return previousThrottle.
+function encounterOrbitalPeriapsis {
+    parameter orbit.
+    parameter desiredPeriapsis.
+    parameter positiveInclination. //Positive or negative inclination?  Essentially, which side of the encountered body do you want your periapsis to be on? (Postive = in front of, negative = behind)
+
+    LOCAL currentPeriapsis IS orbit:PERIAPSIS.
+    LOCAL currentInclination IS orbit:INCLINATION.
+
+    if ( (positiveInclination AND currentInclination < 90) OR (NOT positiveInclination AND currentInclination > 90)) { //We're on the opposite side of the body
+        SET currentPeriapsis TO -((2 * orbit:BODY:RADIUS) + currentPeriapsis + desiredPeriapsis).
     }
 
-    LOCAL previousPe IS previousState["P"].
-    LOCAL previousTime IS previousState["T"].
-    LOCAL previousThrottle IS previousState["H"].
-    LOCAL previousInclination IS previousState["I"].
-
-    LOCAL newPe IS SHIP:ORBIT:NEXTPATCH:PERIAPSIS.
-    LOCAL newInclination IS SHIP:ORBIT:NEXTPATCH:INCLINATION.
-    LOCAL newTime IS TIME:SECONDS.
-
-    IF previousInclination < 90 {
-        PRINT "Previous Inclination < 90.".
-        PRINT "BEFORE: " + previousPE.
-        SET previousPe TO -((2 * SHIP:ORBIT:NEXTPATCH:BODY:RADIUS) + previousPe + desiredPe).
-    }
-
-    IF newInclination < 90 {
-        PRINT "New Inclination < 90.".
-        PRINT "BEFORE: " + newPe.
-        SET newPe TO -((2 * SHIP:ORBIT:NEXTPATCH:BODY:RADIUS) + newPe + desiredPe).
-    }
-
-    LOCAL peChange IS newPe - previousPe.
-    LOCAL timeChange IS newTime - previousTime.
-    LOCAL peChangeRate IS peChange/timeChange.
-
-    PRINT "Previous Throttle: " + previousThrottle.
-    PRINT "Previous Pe: " + previousPe.
-    PRINT "Previous Inclination: " + previousInclination.
-
-    PRINT "New Pe: " + newPe.
-    PRINT "New Inclination: " + newInclination.
-
-    PRINT "Body Radius: " + SHIP:ORBIT:NEXTPATCH:BODY:RADIUS.
-    PRINT "Desired Pe: " + desiredPe.
-    PRINT "Time Change: " + timeChange.
-    PRINT "New Inclination: " + newInclination.
-    PRINT "Periapsis change rate: " + peChangeRate.
-
-    IF newPe > desiredPe RETURN -1.
-
-    PRINT "Desired Periapsis Gap: " + abs(1 - (newPe/desiredPe)).
-    //If we're stupid close to our target orbit, and our change rate is also low, call it quits.
-    IF abs(1 - (newPe/desiredPe)) < 0.001 AND peChangeRate < 0.1 {
-        RETURN -1.
-    }
-
-    SET previousState["I"] TO SHIP:ORBIT:NEXTPATCH:INCLINATION.
-    SET previousState["P"] TO SHIP:ORBIT:NEXTPATCH:PERIAPSIS. //Don't store modified value, use the original.
-    SET previousState["T"] TO newTime.
-
-    //Need to wait a non-zero amount of time to allow for an actual "burn".
-    WAIT 0.01.
-
-    //Still have >1 second burn time, previous throttle is ok.
-    IF newPe + peChangeRate < desiredPe {
-        return previousThrottle.
-    }
-
-    //Time to calculate new throttle.
-    LOCAL newThrottle IS min(1,2*(desiredPe+0.1-newPe)/(peChangeRate)) * previousThrottle.
-    SET previousState["H"] TO newThrottle.
-    return newThrottle.
+    return currentPeriapsis.
 }

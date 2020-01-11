@@ -38,6 +38,7 @@ function sstoLaunch {
     WAIT 1.
 
     BRAKES OFF.
+    SAS OFF.
 
     shortInfo("Throttling Up to 100%").
     LOCK THROTTLE TO 1.0.
