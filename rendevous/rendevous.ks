@@ -43,7 +43,7 @@ function finalApproach {
 
     //Step 1: Calculate
     shortInfo("Calculating separation distance at final approach.").
-    Local separationTime IS timeOfMinimumSeparation(targetVessel, sourceVessel, timeAtNextApoapsis(sourceVessel)).
+    Local separationTime IS timeOfMinimumSeparation(targetVessel, sourceVessel).
 
     Local sourcePosition IS positionVectorAt(sourceVessel, separationTime).
     Local targetPosition IS positionVectorAt(targetVessel, separationTime).
@@ -259,7 +259,7 @@ function getHohmannTransferTimeIterate {
     Local closestSeparationDistance Is getHohmannTransferSeparationDistance(targetOrbital, startTime).
     Local closestSeparationTime Is startTime.
 
-    FROM {Local step Is 1.} UNTIL step >= stepNumber STEP {SET step TO step + 1.} DO {
+    FROM {Local step Is 0.} UNTIL step >= stepNumber STEP {SET step TO step + 1.} DO {
     //    		PRINT "Step is: " + step.
         Local separationTime Is startTime + (step * stepDuration).
 
@@ -515,7 +515,7 @@ function timeOfMinimumSeparationIterate {
     Local closestSeparationDistance Is separationDistanceAtTime(sourceVessel, targetVessel, startTime).
     Local closestSeparationTime Is startTime.
 
-    FROM {Local step Is 1.} UNTIL step >= stepNumber STEP {SET step TO step + 1.} DO {
+    FROM {Local step Is 0.} UNTIL step >= stepNumber STEP {SET step TO step + 1.} DO {
     //		PRINT "Step is: " + step.
         Local separationTime Is startTime + (step * stepDuration).
 
